@@ -17,3 +17,7 @@ class NaoEncontrado(ErroNucleo):
 
 class Conflito(ErroNucleo):
     """Viola uma regra de unicidade (Telegram já usado, loja já tem dona, @ já cadastrado)."""
+
+
+class SemPermissao(ErroNucleo):
+    """Quem pediu não tem o papel necessário (ex.: só a dona pode)."""

@@ -8,7 +8,7 @@
 
 ## Fase 2 — Cadastro
 - [x] 4. Lojas, pessoas e registro de eventos (25/10: 36 testes, cobertura 99%; eventos travados contra edição no próprio banco)
-- [ ] 5. Convite da funcionária
+- [x] 5. Convite da funcionária (25/10: código de 8 caracteres, só hash no banco, uso único, 48 h; permissão de gastos só pela dona)
 - [ ] 6. Consentimentos com versão
 - [ ] 7. Perfil da loja e dados fiscais
 - [ ] Parada B

@@ -89,3 +89,20 @@ class Evento(Base):
     acao: Mapped[str] = mapped_column(String(60), index=True)
     detalhes: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
     custo: Mapped[Decimal | None] = mapped_column(Numeric(12, 4))
+
+
+class Convite(Base):
+    """Código para uma pessoa entrar na loja. Guardado só como hash; vale uma vez, por 48 h."""
+
+    __tablename__ = "convites"
+    __table_args__ = (CheckConstraint("papel IN ('socia', 'funcionaria')", name="papel_valido"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    loja_id: Mapped[int] = mapped_column(ForeignKey("lojas.id", ondelete="CASCADE"), index=True)
+    papel: Mapped[str] = mapped_column(String(12))
+    codigo_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    criado_por: Mapped[int | None] = mapped_column(BigInteger)  # pessoa_id da dona (None = Eri)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expira_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    usado_por: Mapped[int | None] = mapped_column(ForeignKey("pessoas.id", ondelete="SET NULL"))
+    usado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
