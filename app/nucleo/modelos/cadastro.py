@@ -176,3 +176,33 @@ class Fiscal(Base):
     razao_social: Mapped[str | None] = mapped_column(String(200))
     situacao: Mapped[str | None] = mapped_column(String(40))  # da consulta pública, depois
     conferido_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PalavraSenha(Base):
+    """Palavra-senha da dona. Só o hash Argon2id; ninguém consegue ler a palavra."""
+
+    __tablename__ = "palavra_senha"
+
+    pessoa_id: Mapped[int] = mapped_column(
+        ForeignKey("pessoas.id", ondelete="CASCADE"), primary_key=True
+    )
+    hash: Mapped[str] = mapped_column(String(200))
+    dica: Mapped[str | None] = mapped_column(String(100))
+    tentativas_erradas: Mapped[int] = mapped_column(server_default=text("0"))
+    bloqueada_ate: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    valida_ate: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    troca_liberada_ate: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CodigoRecuperacao(Base):
+    """Código de 6 números por e-mail para recuperar a palavra (depois do piloto)."""
+
+    __tablename__ = "codigos_recuperacao"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    pessoa_id: Mapped[int] = mapped_column(ForeignKey("pessoas.id", ondelete="CASCADE"), index=True)
+    hash: Mapped[str] = mapped_column(String(200))
+    expira_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    tentativas: Mapped[int] = mapped_column(server_default=text("0"))
+    usado: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))

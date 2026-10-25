@@ -25,3 +25,11 @@ class SemPermissao(ErroNucleo):
 
 class SemConsentimento(ErroNucleo):
     """Falta um aceite obrigatório (ex.: termos e privacidade antes de gerar)."""
+
+
+class PalavraBloqueada(ErroNucleo):
+    """Errou a palavra-senha 5 vezes: espera 15 minutos."""
+
+
+class PalavraNecessaria(ErroNucleo):
+    """A ação pede a palavra-senha e ela não foi digitada nos últimos 30 minutos."""
