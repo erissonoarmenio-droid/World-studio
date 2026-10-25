@@ -1,6 +1,6 @@
 """Configuração lida das variáveis de ambiente.
 
-Segredos (chaves de API, senha do banco) NUNCA ficam no código: no Railway eles
+Segredos (chaves de API, senha do banco) NUNCA ficam no código: no Render eles
 são variáveis do serviço; no computador, um arquivo .env que não vai para o Git.
 """
 
@@ -14,7 +14,7 @@ class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     ambiente: str = "local"  # local | teste | producao
-    versao: str = "0.1.0"
+    versao: str = "0.1.1"
     database_url: str = "postgresql+psycopg://localhost:5432/world_estudio"
 
     @field_validator("database_url")

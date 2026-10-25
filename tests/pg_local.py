@@ -1,4 +1,4 @@
-"""Sobe um PostgreSQL temporário para os testes (o mesmo PostgreSQL 16 do Railway).
+"""Sobe um PostgreSQL temporário para os testes (o mesmo PostgreSQL 16 do Render).
 
 Se a variável TEST_DATABASE_URL existir (ex.: num serviço de integração contínua),
 ela é usada e nada é iniciado aqui.

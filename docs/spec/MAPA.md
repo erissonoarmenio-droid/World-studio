@@ -37,10 +37,10 @@ Sem ciclos: as setas só apontam para módulos de cima. A conversa pede geraçõ
 
 ## Suposições que estou fazendo (corrija agora, ou sigo com elas)
 1. **Linguagem e base:** Python 3.12 + FastAPI, porque todo o código que já temos é Python (`gerar_foto_google.py`, `trava_cenario.py`, `mascara_peca.py`, `erros.py`, `referencias.py`).
-2. **Banco:** PostgreSQL no próprio Railway.
+2. **Banco:** PostgreSQL no próprio Render.
 3. **Fila de trabalhos:** uma tabela no próprio Postgres (sem Redis) no piloto, para ficar simples e barato.
-4. **Fotos e vídeos:** Cloudflare R2 (10 GB grátis), que também guarda o backup diário do banco fora do Railway. **Precisa de uma conta Cloudflare do Eri.**
-5. **Código:** repositório privado no GitHub do Eri, que o Railway publica sozinho a cada mudança. **Precisa de uma conta GitHub do Eri.**
+4. **Fotos e vídeos:** Cloudflare R2 (10 GB grátis), que também guarda o backup diário do banco fora do Render. **Precisa de uma conta Cloudflare do Eri.**
+5. **Código:** repositório privado no GitHub do Eri, que o Render publica sozinho a cada mudança. **Precisa de uma conta GitHub do Eri.**
 6. **Central:** páginas servidas pelo mesmo servidor, com o visual do protótipo (acrílico Frutiger Aero), instalável no celular (PWA). Login só do Eri: senha + código do celular (2 fatores).
 7. **Telegram:** um bot só, por webhook, para todas as lojas.
 8. **Vídeo no servidor: Atlas Cloud como principal**, não o Higgsfield. Motivo: no servidor precisamos de uma API documentada, e a do Seedance no Higgsfield não é (`comparativo-apis.md` §1); a Atlas já funcionou em 24–25/10 com o rosto da influencer e com a voz de referência. Custo maior (~US$ 0,32 para 4 s, ~US$ 0,49 para 6 s contra ~US$ 0,29 no Higgsfield). O Higgsfield segue nos testes manuais até confirmar a API dele.

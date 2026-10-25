@@ -32,7 +32,7 @@ Construir a base do sistema em 14 tarefas pequenas, cada uma deixando o sistema 
 - O que faz: você cria o repositório privado `world-estudio` no GitHub e a conta no Render (região Leste dos EUA); eu subo o código; o Render publica o serviço `web` com o Postgres.
 - Pronto quando: o endereço público responde `/saude` com "banco ok"; uma mudança no código publicada sozinha aparece no ar.
 - Verificar: chamada ao `/saude` publicado.
-- Depende de: 2. Arquivos: `railway.json` (ou equivalente), `README.md`. Tamanho: P.
+- Depende de: 2. Arquivos: `render.yaml`, `README.md`. Tamanho: P.
 
 **Parada A (com você):** testes passando, servidor no ar, você vê o `/saude` respondendo.
 

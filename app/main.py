@@ -20,7 +20,7 @@ def criar_app() -> FastAPI:
     def saude() -> JSONResponse:
         """Diz se o servidor e as peças de que ele depende estão no ar.
 
-        200 quando tudo está ok; 503 quando alguma peça está fora (o Railway usa isso
+        200 quando tudo está ok; 503 quando alguma peça está fora (o Render usa isso
         para saber se o serviço está saudável). Nunca expõe detalhes internos.
         Armazenamento e fila entram nas próximas tarefas.
         """
