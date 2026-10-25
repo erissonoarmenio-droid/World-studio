@@ -106,3 +106,40 @@ class Convite(Base):
     expira_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     usado_por: Mapped[int | None] = mapped_column(ForeignKey("pessoas.id", ondelete="SET NULL"))
     usado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+TIPOS_CONSENTIMENTO = (
+    "termos_privacidade",
+    "dados_agregados",
+    "instagram",
+    "whatsapp",
+    "ordem_fixa",
+    "modo_automatico",
+    "clone",
+)
+
+
+class Consentimento(Base):
+    """Aceite com versão do texto e horário. Revogar marca a data; nada é apagado."""
+
+    __tablename__ = "consentimentos"
+    __table_args__ = (
+        CheckConstraint(f"tipo IN {TIPOS_CONSENTIMENTO}", name="tipo_valido"),
+        # No máximo um aceite em vigor por pessoa e tipo.
+        Index(
+            "uq_consentimentos_um_ativo",
+            "pessoa_id",
+            "tipo",
+            unique=True,
+            postgresql_where=text("revogado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    pessoa_id: Mapped[int] = mapped_column(ForeignKey("pessoas.id", ondelete="CASCADE"), index=True)
+    loja_id: Mapped[int] = mapped_column(ForeignKey("lojas.id", ondelete="CASCADE"), index=True)
+    tipo: Mapped[str] = mapped_column(String(24))
+    versao: Mapped[str] = mapped_column(String(20))
+    aceito_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revogado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    detalhes: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))

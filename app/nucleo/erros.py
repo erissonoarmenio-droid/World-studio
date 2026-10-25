@@ -21,3 +21,7 @@ class Conflito(ErroNucleo):
 
 class SemPermissao(ErroNucleo):
     """Quem pediu não tem o papel necessário (ex.: só a dona pode)."""
+
+
+class SemConsentimento(ErroNucleo):
+    """Falta um aceite obrigatório (ex.: termos e privacidade antes de gerar)."""
