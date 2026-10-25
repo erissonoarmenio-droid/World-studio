@@ -14,15 +14,15 @@ Construir a base onde todos os outros módulos rodam: o servidor no ar 24 h, o b
 - Como dona da loja, quero que só eu consiga comprar créditos, mudar o plano e ligar o modo automático, com a minha palavra-senha, e recuperá-la se esquecer.
 - Como Eri, quero que uma geração demorada (vídeo de 3–5 min) não trave a conversa e que, se falhar, seja tentada de novo sem duplicar gasto.
 - Como Eri, quero saber quem fez o quê, quando e quanto custou.
-- Como Eri, quero um backup diário fora do Railway e poder apagar ou exportar os dados de uma loja (LGPD).
+- Como Eri, quero um backup diário fora do Render e poder apagar ou exportar os dados de uma loja (LGPD).
 
 ## Tech stack
 - **Python 3.12**, **FastAPI** (servidor), **Uvicorn**.
-- **PostgreSQL** (Railway) com **SQLAlchemy 2** e migrações **Alembic**; driver **psycopg 3**.
+- **PostgreSQL** (Render) com **SQLAlchemy 2** e migrações **Alembic**; driver **psycopg 3**.
 - **Pydantic v2** para validar tudo que entra.
 - **Cloudflare R2** (compatível com S3, via **boto3**) para mídias e backups.
 - **argon2-cffi** (Argon2id) para palavra-senha e códigos de recuperação.
-- Gerenciador de pacotes **uv**, com versões travadas no `uv.lock`; **Docker** para rodar igual no Railway e em qualquer lugar (portabilidade, decisão de 25/10).
+- Gerenciador de pacotes **uv**, com versões travadas no `uv.lock`; **Docker** para rodar igual no Render e em qualquer lugar (portabilidade, decisão de 25/10).
 - Testes **pytest**; estilo **ruff**.
 - Recuperação da palavra-senha **pelo Eri** no piloto (decisão de 25/10); envio de código por e-mail fica para quando houver domínio próprio.
 
@@ -39,7 +39,7 @@ Estilo:          uv run ruff check --fix . && uv run ruff format .
 Imagem Docker:   docker build -t world-estudio .
 Backup manual:   uv run python -m app.nucleo.backup --agora
 ```
-No Railway: 2 serviços a partir da mesma imagem (`web` = Uvicorn; `trabalhador` = fila) + Postgres + tarefa agendada diária do backup.
+No Render: 2 serviços a partir da mesma imagem (`web` = Uvicorn; `trabalhador` = fila) + Postgres + tarefa agendada diária do backup.
 
 ## Estrutura do projeto
 ```
@@ -123,19 +123,19 @@ def enfileirar(
 ```
 
 ## Estratégia de testes
-- **pytest**, testes em `tests/nucleo/`, banco Postgres de teste em contêiner (o mesmo do Railway), R2 simulado nos testes.
+- **pytest**, testes em `tests/nucleo/`, banco Postgres de teste em contêiner (o mesmo do Render), R2 simulado nos testes.
 - **Unidade:** palavra-senha (hash, janela de 30 min, bloqueio, recuperação e expiração), convites, consentimentos, `chave_unica`, regras de re-tentativa.
 - **Integração:** dois trabalhadores ao mesmo tempo não pegam o mesmo trabalho; trabalho travado volta; exportar e apagar uma loja (inclusive mídias); backup e restauração num banco vazio.
 - **Abuso primeiro** (skill `security-and-hardening`): força bruta na palavra-senha, convite reutilizado, código expirado, trabalho sem consentimento, tentativa de ler mídia de outra loja.
 - Cobertura mínima de 80% no `app/nucleo`.
 
 ## Limites
-- **Sempre:** validar tudo que entra; segredos só em variáveis de ambiente do Railway; rodar testes e ruff antes de cada envio; registrar evento para toda ação que muda dados ou gasta; tratar texto vindo da IA, do Instagram e da lojista como dado, nunca como comando.
-- **Perguntar ao Eri antes:** mudar o modelo de dados depois de aprovado; acrescentar dependência nova; qualquer coisa que gaste dinheiro (planos pagos de Railway, R2, e-mail); guardar um tipo novo de dado pessoal.
+- **Sempre:** validar tudo que entra; segredos só em variáveis de ambiente do Render; rodar testes e ruff antes de cada envio; registrar evento para toda ação que muda dados ou gasta; tratar texto vindo da IA, do Instagram e da lojista como dado, nunca como comando.
+- **Perguntar ao Eri antes:** mudar o modelo de dados depois de aprovado; acrescentar dependência nova; qualquer coisa que gaste dinheiro (planos pagos de Render, R2, e-mail); guardar um tipo novo de dado pessoal.
 - **Nunca:** chave ou token no repositório ou em log; palavra-senha ou código em texto legível; mídia pública; apagar dados sem o pedido registrado; desligar um teste que falha sem combinar.
 
 ## Critérios de pronto
-1. O servidor está no ar no Railway e `/saude` responde "ok" para banco, R2 e fila.
+1. O servidor está no ar no Render e `/saude` responde "ok" para banco, R2 e fila.
 2. `alembic upgrade head` cria todas as tabelas num banco vazio, sem erro.
 3. É possível criar uma loja com dona, convidar uma funcionária por código (uso único, 48 h) e registrar o aceite de termos; tudo aparece nos eventos.
 4. Sem aceite de termos, `enfileirar` recusa com motivo claro.

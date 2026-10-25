@@ -3,7 +3,7 @@
 ## Fase 1 — Fundação
 - [x] 1. Esqueleto do projeto (25/10): `/saude`, config por ambiente, Dockerfile com usuário sem privilégios, ruff, pytest (3 testes, cobertura 100%), imagem testada (331 MB)
 - [x] 2. Banco de dados e migrações (25/10): conexão Postgres com reconexão automática, Alembic com URL só do ambiente, migração 0001, banco de teste PostgreSQL 16 real e descartável, `/saude` com banco (503 se fora), 9 testes, cobertura 100%
-- [ ] 3. Publicar no Railway (Eri cria GitHub e Railway)
+- [ ] 3. Publicar no Render (25/10: repositório criado e código enviado; troca do Railway pelo Render por causa da invasão do Railway de 20–22/10)
 - [ ] Parada A
 
 ## Fase 2 — Cadastro

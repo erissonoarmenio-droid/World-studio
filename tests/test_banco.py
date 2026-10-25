@@ -41,7 +41,7 @@ def test_banco_ok_nao_vaza_erro(monkeypatch):
     assert db.banco_ok() is False
 
 
-def test_url_do_railway_ganha_driver(monkeypatch):
+def test_url_do_provedor_ganha_driver(monkeypatch):
     from app.config import Config
 
     for original in ("postgres://u:p@h:5432/d", "postgresql://u:p@h:5432/d"):

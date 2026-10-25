@@ -1,0 +1,28 @@
+# Blueprint do Render: cria o servidor e o banco de uma vez.
+# Região Virgínia (Leste dos EUA), a mais perto do Brasil entre as opções.
+services:
+  - type: web
+    name: world-studio-web
+    runtime: docker
+    region: virginia
+    plan: starter
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /saude
+    preDeployCommand: alembic upgrade head
+    autoDeploy: true
+    envVars:
+      - key: AMBIENTE
+        value: producao
+      - key: DATABASE_URL
+        fromDatabase:
+          name: world-studio-db
+          property: connectionString
+
+databases:
+  - name: world-studio-db
+    region: virginia
+    plan: basic-256mb
+    postgresMajorVersion: "16"
+    databaseName: world_studio
+    ipAllowList: []   # sem acesso de fora: só os serviços do Render falam com o banco

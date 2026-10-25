@@ -20,7 +20,7 @@ class Config(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def usar_driver_psycopg(cls, valor: str) -> str:
-        """O Railway entrega 'postgres://' ou 'postgresql://'; o SQLAlchemy precisa do driver."""
+        """O provedor entrega 'postgres://' ou 'postgresql://'; o SQLAlchemy precisa do driver."""
         for prefixo in ("postgres://", "postgresql://"):
             if valor.startswith(prefixo):
                 return "postgresql+psycopg://" + valor[len(prefixo) :]

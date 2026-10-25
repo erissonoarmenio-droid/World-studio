@@ -6,12 +6,12 @@ Versão 0.1 — 25/out/2026. Método: skill `planning-and-task-breakdown`. Base:
 Construir a base do sistema em 14 tarefas pequenas, cada uma deixando o sistema funcionando e testado. Ordem: esqueleto → banco → **servidor no ar cedo** (para descobrir problemas de hospedagem logo) → cadastro → palavra-senha → fila → mídias, LGPD e backup → fechamento de segurança. Paradas para revisão com o Eri depois de cada fase.
 
 ## Decisões de arquitetura
-- **Servidor no ar na 3ª tarefa**, não no fim: o Railway é o maior risco externo (incidentes de 2026), então testamos a publicação cedo, com quase nada dentro.
+- **Servidor no ar na 3ª tarefa**, não no fim: o Render é o maior risco externo (incidentes de 2026), então testamos a publicação cedo, com quase nada dentro.
 - **Fatias verticais:** cada tarefa entrega tabela + funções + testes + evento de auditoria juntos (não "todas as tabelas primeiro").
-- **Postgres de verdade nos testes:** o ambiente de trabalho já tem o PostgreSQL 16 (o mesmo usado no Railway), então os testes rodam contra um banco real local, sem simulação.
+- **Postgres de verdade nos testes:** o ambiente de trabalho já tem o PostgreSQL 16 (o mesmo usado no Render), então os testes rodam contra um banco real local, sem simulação.
 - **Fila no próprio Postgres** (`FOR UPDATE SKIP LOCKED`), sem Redis, como na especificação.
 - **R2 simulado nos testes** (biblioteca de simulação de S3) e real só no ambiente publicado.
-- **Eu escrevo e testo aqui; você cria as contas e aprova.** Contas necessárias, cada uma só na tarefa em que vira necessária: GitHub (tarefa 3), Railway (tarefa 3), Cloudflare R2 (tarefa 11).
+- **Eu escrevo e testo aqui; você cria as contas e aprova.** Contas necessárias, cada uma só na tarefa em que vira necessária: GitHub (tarefa 3), Render (tarefa 3), Cloudflare R2 (tarefa 11).
 
 ## Tarefas
 
@@ -28,8 +28,8 @@ Construir a base do sistema em 14 tarefas pequenas, cada uma deixando o sistema 
 - Verificar: testes + migração num banco novo.
 - Depende de: 1. Arquivos: `app/nucleo/db.py`, `migrations/`, `alembic.ini`, `tests/conftest.py`. Tamanho: M.
 
-**Tarefa 3: Publicar no Railway (você participa)**
-- O que faz: você cria o repositório privado `world-estudio` no GitHub e a conta no Railway (região Leste dos EUA); eu subo o código; o Railway publica o serviço `web` com o Postgres.
+**Tarefa 3: Publicar no Render (você participa)**
+- O que faz: você cria o repositório privado `world-estudio` no GitHub e a conta no Render (região Leste dos EUA); eu subo o código; o Render publica o serviço `web` com o Postgres.
 - Pronto quando: o endereço público responde `/saude` com "banco ok"; uma mudança no código publicada sozinha aparece no ar.
 - Verificar: chamada ao `/saude` publicado.
 - Depende de: 2. Arquivos: `railway.json` (ou equivalente), `README.md`. Tamanho: P.
@@ -73,9 +73,9 @@ Construir a base do sistema em 14 tarefas pequenas, cada uma deixando o sistema 
 - Verificar: testes. Depende de: 6. Arquivos: `fila/`, modelo, testes. Tamanho: P.
 
 **Tarefa 10: O trabalhador**
-- O que faz: o processo que pega trabalhos, conclui, falha com nova tentativa (espera crescente, máx. 3) e devolve travados; `/saude` passa a checar a fila; serviço `trabalhador` no Railway.
+- O que faz: o processo que pega trabalhos, conclui, falha com nova tentativa (espera crescente, máx. 3) e devolve travados; `/saude` passa a checar a fila; serviço `trabalhador` no Render.
 - Pronto quando: teste com 2 trabalhadores ao mesmo tempo sem pegar o mesmo trabalho; falha re-tentada até 3 vezes e depois vira "falhou" + evento; travado há 15 min volta.
-- Verificar: testes de concorrência + o trabalhador rodando no Railway. Depende de: 9, 3. Arquivos: `fila/trabalhador.py`, `main.py`, testes. Tamanho: M.
+- Verificar: testes de concorrência + o trabalhador rodando no Render. Depende de: 9, 3. Arquivos: `fila/trabalhador.py`, `main.py`, testes. Tamanho: M.
 
 **Parada C (com você):** fila funcionando no ar com um trabalho de teste.
 
@@ -105,9 +105,9 @@ Construir a base do sistema em 14 tarefas pequenas, cada uma deixando o sistema 
 ## Riscos e como travamos
 | Risco | Impacto | Trava |
 |---|---|---|
-| Railway fora do ar ou derrubando serviço (já aconteceu em 2026) | Alto | Publicação testada cedo (tarefa 3); Docker para mudar de hospedagem; backup diário fora dele (tarefa 13) |
-| Atraso nas contas (GitHub, Railway, Cloudflare) | Médio | Tudo é construído e testado aqui antes; cada conta só é pedida na tarefa que precisa |
-| Versão do `pg_dump` diferente da do banco no Railway | Médio | Usar a mesma versão do Postgres nos dois; testar restauração de verdade |
+| Render fora do ar ou derrubando serviço (já aconteceu em 2026) | Alto | Publicação testada cedo (tarefa 3); Docker para mudar de hospedagem; backup diário fora dele (tarefa 13) |
+| Atraso nas contas (GitHub, Render, Cloudflare) | Médio | Tudo é construído e testado aqui antes; cada conta só é pedida na tarefa que precisa |
+| Versão do `pg_dump` diferente da do banco no Render | Médio | Usar a mesma versão do Postgres nos dois; testar restauração de verdade |
 | Erro na fila gastando duas vezes | Alto | `chave_unica` + teste de concorrência antes de qualquer geração real |
 | Vazamento de dados de uma loja para outra | Alto | Pasta por loja, checagem de dono em toda leitura, teste de abuso específico |
 
