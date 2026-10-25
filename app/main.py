@@ -1,5 +1,6 @@
 """Ponto de entrada do servidor do estúdio W-orld."""
 
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -11,9 +12,26 @@ from app.nucleo.db import banco_ok
 from app.nucleo.fila.trabalhador import EXECUTORES, Trabalhador
 
 
+class _CacheR2:
+    """O /saude é chamado o tempo todo; confere o R2 no máximo 1 vez por minuto."""
+
+    def __init__(self) -> None:
+        self.quando = 0.0
+        self.ok = False
+
+    def conferir(self) -> bool:
+        if time.monotonic() - self.quando > 60:
+            from app.nucleo.midia import armazenamento_midias
+
+            self.ok = armazenamento_midias().ok()
+            self.quando = time.monotonic()
+        return self.ok
+
+
 def criar_app() -> FastAPI:
     config = obter_config()
     estado: dict[str, Trabalhador | None] = {"trabalhador": None}
+    cache_r2 = _CacheR2()
 
     @asynccontextmanager
     async def ciclo_de_vida(_: FastAPI) -> AsyncIterator[None]:
@@ -45,6 +63,8 @@ def criar_app() -> FastAPI:
         if config.trabalhador_ativo:
             trabalhador = estado["trabalhador"]
             componentes["fila"] = "ok" if trabalhador and trabalhador.vivo() else "fora"
+        if config.r2_configurado:
+            componentes["r2"] = "ok" if cache_r2.conferir() else "fora"
         tudo_ok = all(v == "ok" for v in componentes.values())
         return JSONResponse(
             status_code=200 if tudo_ok else 503,

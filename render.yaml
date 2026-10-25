@@ -18,6 +18,17 @@ services:
         fromDatabase:
           name: world-studio-db
           property: connectionString
+      # Cloudflare R2: o Eri preenche no painel do Render (nunca no repositório).
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_MIDIAS
+        value: world-studio-midias
+      - key: R2_BUCKET_BACKUP
+        value: world-studio-backup
 
 databases:
   - name: world-studio-db

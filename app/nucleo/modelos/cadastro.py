@@ -207,3 +207,23 @@ class CodigoRecuperacao(Base):
     expira_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     tentativas: Mapped[int] = mapped_column(server_default=text("0"))
     usado: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+
+
+TIPOS_MIDIA = ("peca", "cenario", "resultado", "voz", "video", "influencer", "outro")
+
+
+class Midia(Base):
+    """Arquivo guardado no R2 (bucket privado, uma pasta por loja)."""
+
+    __tablename__ = "midias"
+    __table_args__ = (CheckConstraint(f"tipo IN {TIPOS_MIDIA}", name="tipo_valido"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    loja_id: Mapped[int] = mapped_column(ForeignKey("lojas.id", ondelete="CASCADE"), index=True)
+    chave: Mapped[str] = mapped_column(String(300), unique=True)
+    tipo: Mapped[str] = mapped_column(String(12))
+    content_type: Mapped[str] = mapped_column(String(60))
+    tamanho: Mapped[int] = mapped_column(BigInteger)
+    origem: Mapped[str] = mapped_column(String(30))  # lojista, geracao, eri...
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    apagar_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -6,7 +6,7 @@ são variáveis do serviço; no computador, um arquivo .env que não vai para o 
 
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +17,17 @@ class Config(BaseSettings):
     versao: str = "0.1.1"
     database_url: str = "postgresql+psycopg://localhost:5432/world_estudio"
     trabalhador_ativo: bool = True  # o trabalhador da fila roda dentro do servidor
+
+    # Cloudflare R2 (fotos, vídeos e backup). Vazio = desligado (ex.: nos testes).
+    r2_account_id: str | None = None
+    r2_access_key_id: str | None = None
+    r2_secret_access_key: SecretStr | None = None
+    r2_bucket_midias: str = "world-studio-midias"
+    r2_bucket_backup: str = "world-studio-backup"
+
+    @property
+    def r2_configurado(self) -> bool:
+        return bool(self.r2_account_id and self.r2_access_key_id and self.r2_secret_access_key)
 
     @field_validator("database_url")
     @classmethod
