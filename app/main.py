@@ -66,8 +66,11 @@ def criar_app() -> FastAPI:
         if config.r2_configurado:
             componentes["r2"] = "ok" if cache_r2.conferir() else "fora"
         tudo_ok = all(v == "ok" for v in componentes.values())
+        # O código HTTP depende só do que é nosso (processo, banco, fila). Se o R2 cair,
+        # o /saude mostra "degradado", mas o Render não derruba o servidor por isso.
+        essenciais_ok = all(v == "ok" for k, v in componentes.items() if k != "r2")
         return JSONResponse(
-            status_code=200 if tudo_ok else 503,
+            status_code=200 if essenciais_ok else 503,
             content={"status": "ok" if tudo_ok else "degradado", "componentes": componentes},
         )
 

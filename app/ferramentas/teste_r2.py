@@ -32,6 +32,8 @@ def main() -> int:
         b, _ = criar_loja_com_dona(s, {"nome": f"Teste R2 B {marca}"}, {"nome": "Teste B"}, ERI)
         loja_a, loja_b = a.id, b.id
     passos: list[tuple[str, bool]] = []
+    diagnostico = armazenamento_midias().diagnostico()
+    passos.append((f"chave e bucket respondem ({diagnostico})", diagnostico == "ok"))
     try:
         with sessao() as s:
             midia = enviar(

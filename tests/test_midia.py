@@ -138,8 +138,9 @@ def test_loja_inexistente(sessao_limpa, r2):
 
 
 def test_saude_do_r2(r2):
-    assert r2.ok() is True
-    assert Armazenamento(r2.cliente, "nao-existe").ok() is False
+    assert r2.ok() is True and r2.diagnostico() == "ok"
+    outro = Armazenamento(r2.cliente, "nao-existe")
+    assert outro.ok() is False and outro.diagnostico() == "NoSuchBucket"
 
 
 def test_cliente_real_exige_configuracao(monkeypatch):
@@ -179,7 +180,9 @@ def test_saude_mostra_r2_quando_configurado(r2, monkeypatch):
         assert TestClient(criar_app()).get("/saude").json()["componentes"]["r2"] == "ok"
         monkeypatch.setattr(mod, "armazenamento_midias", lambda: Armazenamento(r2.cliente, "x"))
         r = TestClient(criar_app()).get("/saude")
-        assert r.status_code == 503 and r.json()["componentes"]["r2"] == "fora"
+        # R2 fora não derruba o servidor: mostra degradado, mas responde 200.
+        assert r.status_code == 200 and r.json()["componentes"]["r2"] == "fora"
+        assert r.json()["status"] == "degradado"
     finally:
         for k in ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"):
             monkeypatch.delenv(k)
