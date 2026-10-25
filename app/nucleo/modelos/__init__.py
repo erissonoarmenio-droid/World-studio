@@ -1,1 +1,5 @@
-"""Tabelas do núcleo. Cada módulo novo de tabela é importado aqui para o Alembic enxergar."""
+"""Todas as tabelas do núcleo (importar aqui registra no metadata do Alembic)."""
+
+from app.nucleo.modelos.cadastro import Evento, Loja, Pessoa
+
+__all__ = ["Evento", "Loja", "Pessoa"]
