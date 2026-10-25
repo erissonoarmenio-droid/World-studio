@@ -143,3 +143,36 @@ class Consentimento(Base):
     aceito_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     revogado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     detalhes: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+
+
+class PerfilLoja(Base):
+    """A "lista invisível" da influencer: marca, influencer, respostas, preferências.
+
+    `dados` é plano: {"marca.tom": {"valor": ..., "origem": "instagram", "em": "..."}}.
+    """
+
+    __tablename__ = "perfil_loja"
+
+    loja_id: Mapped[int] = mapped_column(
+        ForeignKey("lojas.id", ondelete="CASCADE"), primary_key=True
+    )
+    dados: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Fiscal(Base):
+    """Dados fiscais. Vazio no piloto; preenchido quando a loja for pagar."""
+
+    __tablename__ = "fiscal"
+    __table_args__ = (CheckConstraint("tipo IN ('cpf', 'cnpj')", name="tipo_valido"),)
+
+    loja_id: Mapped[int] = mapped_column(
+        ForeignKey("lojas.id", ondelete="CASCADE"), primary_key=True
+    )
+    tipo: Mapped[str] = mapped_column(String(4))
+    documento: Mapped[str] = mapped_column(String(14))
+    razao_social: Mapped[str | None] = mapped_column(String(200))
+    situacao: Mapped[str | None] = mapped_column(String(40))  # da consulta pública, depois
+    conferido_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
