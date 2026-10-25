@@ -18,7 +18,7 @@
 
 ## Fase 4 — Fila
 - [x] 9. Enfileirar sem gastar duas vezes (25/10: chave_unica decidida pelo banco, teste com 8 pedidos simultâneos, recusa sem termos)
-- [ ] 10. O trabalhador
+- [x] 10. O trabalhador (25/10: dentro do servidor por decisão do Eri; SKIP LOCKED testado com 4 trabalhadores, 3 tentativas com espera crescente, travado volta em 15 min, /saude mostra a fila)
 - [ ] Parada C
 
 ## Fase 5 — Mídias, LGPD e backup

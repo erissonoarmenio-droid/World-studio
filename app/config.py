@@ -16,6 +16,7 @@ class Config(BaseSettings):
     ambiente: str = "local"  # local | teste | producao
     versao: str = "0.1.1"
     database_url: str = "postgresql+psycopg://localhost:5432/world_estudio"
+    trabalhador_ativo: bool = True  # o trabalhador da fila roda dentro do servidor
 
     @field_validator("database_url")
     @classmethod

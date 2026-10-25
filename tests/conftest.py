@@ -16,6 +16,7 @@ def banco_de_teste():
         url = pg.iniciar()
     os.environ["DATABASE_URL"] = url
     os.environ["AMBIENTE"] = "teste"
+    os.environ["TRABALHADOR_ATIVO"] = "false"  # os testes chamam o trabalhador direto
 
     from app.config import obter_config
     from app.nucleo import db
