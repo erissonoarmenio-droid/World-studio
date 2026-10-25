@@ -43,7 +43,8 @@ class Loja(Base):
     situacao: Mapped[str | None] = mapped_column(String(20))
     criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    pessoas: Mapped[list["Pessoa"]] = relationship(back_populates="loja")
+    # O banco apaga as pessoas junto (ON DELETE CASCADE); o ORM não tenta soltá-las.
+    pessoas: Mapped[list["Pessoa"]] = relationship(back_populates="loja", passive_deletes=True)
 
 
 class Pessoa(Base):

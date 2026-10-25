@@ -11,6 +11,7 @@ from app.nucleo.modelos.cadastro import (
     PerfilLoja,
     Pessoa,
 )
+from app.nucleo.modelos.fila import Trabalho
 
 __all__ = [
     "CodigoRecuperacao",
@@ -22,4 +23,5 @@ __all__ = [
     "PalavraSenha",
     "PerfilLoja",
     "Pessoa",
+    "Trabalho",
 ]

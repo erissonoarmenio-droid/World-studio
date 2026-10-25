@@ -17,7 +17,7 @@
 - [x] 8. Palavra-senha da dona (25/10: Argon2id, janela de 30 min, 5 erros = 15 min de bloqueio, troca liberada pelo Eri por 24 h, força bruta simulada)
 
 ## Fase 4 — Fila
-- [ ] 9. Enfileirar sem gastar duas vezes
+- [x] 9. Enfileirar sem gastar duas vezes (25/10: chave_unica decidida pelo banco, teste com 8 pedidos simultâneos, recusa sem termos)
 - [ ] 10. O trabalhador
 - [ ] Parada C
 
