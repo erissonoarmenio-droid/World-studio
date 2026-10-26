@@ -23,7 +23,10 @@ class _CacheR2:
         if time.monotonic() - self.quando > 60:
             from app.nucleo.midia import armazenamento_midias
 
-            self.ok = armazenamento_midias().ok()
+            try:
+                self.ok = armazenamento_midias().ok()
+            except Exception:  # configuração errada (ex.: Account ID inválido) = "fora"
+                self.ok = False
             self.quando = time.monotonic()
         return self.ok
 

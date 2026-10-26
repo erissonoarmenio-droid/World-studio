@@ -204,3 +204,28 @@ def test_roteiro_do_teste_no_ar(r2, monkeypatch):
         teste_r2.urllib.request, "urlopen", lambda url, timeout: io.BytesIO(teste_r2.PNG)
     )
     assert teste_r2.main() == 0
+
+
+def test_saude_nao_quebra_com_configuracao_errada(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.config import obter_config
+    from app.main import criar_app
+
+    monkeypatch.setenv("R2_ACCOUNT_ID", "https://colado-errado")
+    monkeypatch.setenv("R2_ACCESS_KEY_ID", "id")
+    monkeypatch.setenv("R2_SECRET_ACCESS_KEY", "segredo")
+    obter_config.cache_clear()
+    mod.armazenamento_midias.cache_clear()
+
+    def quebra():
+        raise ValueError("endpoint inválido")
+
+    monkeypatch.setattr(mod, "armazenamento_midias", quebra)
+    try:
+        r = TestClient(criar_app()).get("/saude")
+        assert r.status_code == 200 and r.json()["componentes"]["r2"] == "fora"
+    finally:
+        for k in ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"):
+            monkeypatch.delenv(k)
+        obter_config.cache_clear()
