@@ -229,3 +229,25 @@ def test_saude_nao_quebra_com_configuracao_errada(monkeypatch):
         for k in ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"):
             monkeypatch.delenv(k)
         obter_config.cache_clear()
+
+
+def test_chaves_do_r2_coladas_com_enter_sao_limpas(monkeypatch):
+    from app.config import Config
+
+    monkeypatch.setenv("R2_ACCOUNT_ID", " conta\n")
+    monkeypatch.setenv("R2_ACCESS_KEY_ID", "chave\n")
+    monkeypatch.setenv("R2_SECRET_ACCESS_KEY", "segredo \r\n")
+    c = Config(_env_file=None)
+    assert c.r2_account_id == "conta"
+    assert c.r2_access_key_id == "chave"
+    assert c.r2_secret_access_key.get_secret_value() == "segredo"
+
+
+def test_diagnostico_sem_resposta_do_servidor_nao_quebra():
+    from app.nucleo.midia import Armazenamento
+
+    class ClienteQuebrado:
+        def head_object(self, **_):
+            raise ValueError("cabeçalho inválido")
+
+    assert Armazenamento(ClienteQuebrado(), "b").diagnostico() == "ValueError"

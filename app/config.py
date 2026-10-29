@@ -29,6 +29,15 @@ class Config(BaseSettings):
     def r2_configurado(self) -> bool:
         return bool(self.r2_account_id and self.r2_access_key_id and self.r2_secret_access_key)
 
+    @field_validator(
+        "r2_account_id", "r2_access_key_id", "r2_secret_access_key", "r2_bucket_midias",
+        "r2_bucket_backup", mode="before",
+    )
+    @classmethod
+    def tirar_espacos(cls, valor: object) -> object:
+        """Ao colar uma chave no painel, vem junto um Enter ou espaço; isso quebra a assinatura."""
+        return valor.strip() if isinstance(valor, str) else valor
+
     @field_validator("database_url")
     @classmethod
     def usar_driver_psycopg(cls, valor: str) -> str:

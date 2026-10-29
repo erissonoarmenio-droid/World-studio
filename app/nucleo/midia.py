@@ -85,7 +85,8 @@ class Armazenamento:
             self.cliente.head_object(Bucket=self.bucket, Key=".saude")
             return "ok"
         except Exception as erro:
-            codigo = str(getattr(erro, "response", {}).get("Error", {}).get("Code", ""))
+            resposta = getattr(erro, "response", None) or {}
+            codigo = str(resposta.get("Error", {}).get("Code", ""))
             if codigo in ("404", "NoSuchKey", "NotFound"):
                 return "ok"  # respondeu "não existe": a chave e o bucket funcionam
             return codigo or type(erro).__name__
