@@ -24,6 +24,6 @@
 ## Fase 5 — Mídias, LGPD e backup
 - [ ] 11. Armazenamento (Eri cria Cloudflare R2)
 - [ ] 12. Exportar e apagar loja
-- [ ] 13. Backup diário
+- [x] 13. Backup diário (código; falta a conferência no ar com o Eri)
 - [ ] 14. Fechamento de segurança
 - [ ] Parada final

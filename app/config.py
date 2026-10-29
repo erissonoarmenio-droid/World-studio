@@ -24,6 +24,8 @@ class Config(BaseSettings):
     r2_secret_access_key: SecretStr | None = None
     r2_bucket_midias: str = "world-studio-midias"
     r2_bucket_backup: str = "world-studio-backup"
+    pg_dump: str = "pg_dump"  # no Docker: o pg_dump 16 (mesma versão do banco)
+    backup_ativo: bool = True  # o backup diário roda junto com o servidor
 
     @property
     def r2_configurado(self) -> bool:

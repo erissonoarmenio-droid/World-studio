@@ -1,5 +1,6 @@
 """Ponto de entrada do servidor do estúdio W-orld."""
 
+import logging
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -8,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from app.config import obter_config
+from app.nucleo.backup import Agendador
 from app.nucleo.db import banco_ok
 from app.nucleo.fila.trabalhador import EXECUTORES, Trabalhador
 
@@ -34,6 +36,7 @@ class _CacheR2:
 def criar_app() -> FastAPI:
     config = obter_config()
     estado: dict[str, Trabalhador | None] = {"trabalhador": None}
+    backup: dict[str, Agendador | None] = {"agendador": None}
     cache_r2 = _CacheR2()
 
     @asynccontextmanager
@@ -43,9 +46,21 @@ def criar_app() -> FastAPI:
             trabalhador = Trabalhador(EXECUTORES)
             trabalhador.iniciar()
             estado["trabalhador"] = trabalhador
+        # Backup diário do banco para o R2 (tarefa 13), também sem custo extra.
+        if config.backup_ativo and config.r2_configurado:
+            from app.nucleo.backup import criar_agendador
+
+            try:
+                agendador = criar_agendador()
+                agendador.iniciar()
+                backup["agendador"] = agendador
+            except Exception:  # R2 mal configurado não pode impedir o servidor de subir
+                logging.getLogger("estudio.backup").exception("backup não iniciou")
         yield
         if estado["trabalhador"]:
             estado["trabalhador"].parar()
+        if backup["agendador"]:
+            backup["agendador"].parar()
 
     app = FastAPI(
         title="Estúdio W-orld",
@@ -68,10 +83,13 @@ def criar_app() -> FastAPI:
             componentes["fila"] = "ok" if trabalhador and trabalhador.vivo() else "fora"
         if config.r2_configurado:
             componentes["r2"] = "ok" if cache_r2.conferir() else "fora"
+        if config.backup_ativo and config.r2_configurado:
+            agendador = backup["agendador"]
+            componentes["backup"] = "ok" if agendador and agendador.em_dia() else "atrasado"
         tudo_ok = all(v == "ok" for v in componentes.values())
-        # O código HTTP depende só do que é nosso (processo, banco, fila). Se o R2 cair,
-        # o /saude mostra "degradado", mas o Render não derruba o servidor por isso.
-        essenciais_ok = all(v == "ok" for k, v in componentes.items() if k != "r2")
+        # O código HTTP depende só do que é nosso (processo, banco, fila). Se o R2 cair ou
+        # o backup atrasar, o /saude mostra "degradado", mas o Render não derruba o servidor.
+        essenciais_ok = all(v == "ok" for k, v in componentes.items() if k not in ("r2", "backup"))
         return JSONResponse(
             status_code=200 if essenciais_ok else 503,
             content={"status": "ok" if tudo_ok else "degradado", "componentes": componentes},
