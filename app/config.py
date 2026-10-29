@@ -30,8 +30,12 @@ class Config(BaseSettings):
         return bool(self.r2_account_id and self.r2_access_key_id and self.r2_secret_access_key)
 
     @field_validator(
-        "r2_account_id", "r2_access_key_id", "r2_secret_access_key", "r2_bucket_midias",
-        "r2_bucket_backup", mode="before",
+        "r2_account_id",
+        "r2_access_key_id",
+        "r2_secret_access_key",
+        "r2_bucket_midias",
+        "r2_bucket_backup",
+        mode="before",
     )
     @classmethod
     def tirar_espacos(cls, valor: object) -> object:
