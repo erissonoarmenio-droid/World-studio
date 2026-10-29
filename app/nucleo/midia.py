@@ -79,16 +79,15 @@ class Armazenamento:
         return [o["Key"] for p in paginas for o in p.get("Contents", [])]
 
     def diagnostico(self) -> str:
-        """'ok' ou o código do erro (sem segredos). Usa uma operação de arquivo, porque a
-        chave do R2 é limitada aos buckets e pode não ter permissão de operações de bucket."""
+        """'ok' ou o código do erro (sem segredos). Lista no máximo 1 arquivo: confere a
+        chave E que o bucket existe (um HEAD de arquivo responde 404 nos dois casos), sem
+        precisar de permissão de operações de bucket."""
         try:
-            self.cliente.head_object(Bucket=self.bucket, Key=".saude")
+            self.cliente.list_objects_v2(Bucket=self.bucket, MaxKeys=1)
             return "ok"
         except Exception as erro:
             resposta = getattr(erro, "response", None) or {}
             codigo = str(resposta.get("Error", {}).get("Code", ""))
-            if codigo in ("404", "NoSuchKey", "NotFound"):
-                return "ok"  # respondeu "não existe": a chave e o bucket funcionam
             return codigo or type(erro).__name__
 
     def ok(self) -> bool:

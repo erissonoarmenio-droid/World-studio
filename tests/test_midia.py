@@ -247,7 +247,15 @@ def test_diagnostico_sem_resposta_do_servidor_nao_quebra():
     from app.nucleo.midia import Armazenamento
 
     class ClienteQuebrado:
-        def head_object(self, **_):
+        def list_objects_v2(self, **_):
             raise ValueError("cabeçalho inválido")
 
     assert Armazenamento(ClienteQuebrado(), "b").diagnostico() == "ValueError"
+
+
+def test_diagnostico_acusa_bucket_inexistente():
+    with mock_aws():
+        cliente = boto3.client("s3", region_name="us-east-1")
+        cliente.create_bucket(Bucket="existe")
+        assert Armazenamento(cliente, "existe").diagnostico() == "ok"
+        assert Armazenamento(cliente, "nao-existe").diagnostico() == "NoSuchBucket"

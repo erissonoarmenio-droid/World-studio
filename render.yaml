@@ -25,10 +25,11 @@ services:
         sync: false
       - key: R2_SECRET_ACCESS_KEY
         sync: false
+      # Nomes dos buckets criados pelo Eri na Cloudflare (a chave só vale para eles).
       - key: R2_BUCKET_MIDIAS
-        value: world-studio-midias
+        value: balde1
       - key: R2_BUCKET_BACKUP
-        value: world-studio-backup
+        value: balde2
 
 databases:
   - name: world-studio-db
