@@ -33,8 +33,20 @@ class _CacheR2:
         return self.ok
 
 
+def _configurar_logs() -> None:
+    """Os registros do estúdio (backup, fila) aparecem no log do Render, sem segredos."""
+    log = logging.getLogger("estudio")
+    if not log.handlers:
+        saida = logging.StreamHandler()
+        saida.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+        log.addHandler(saida)
+        log.setLevel(logging.INFO)
+        log.propagate = False
+
+
 def criar_app() -> FastAPI:
     config = obter_config()
+    _configurar_logs()
     estado: dict[str, Trabalhador | None] = {"trabalhador": None}
     backup: dict[str, Agendador | None] = {"agendador": None}
     cache_r2 = _CacheR2()
@@ -54,6 +66,7 @@ def criar_app() -> FastAPI:
                 agendador = criar_agendador()
                 agendador.iniciar()
                 backup["agendador"] = agendador
+                logging.getLogger("estudio.backup").info("agendador do backup iniciado")
             except Exception:  # R2 mal configurado não pode impedir o servidor de subir
                 logging.getLogger("estudio.backup").exception("backup não iniciou")
         yield

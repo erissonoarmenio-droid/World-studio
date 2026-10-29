@@ -29,6 +29,7 @@ from app.config import obter_config
 from app.nucleo.db import obter_engine
 from app.nucleo.db import sessao as abrir_sessao
 from app.nucleo.eventos import registrar_evento
+from app.nucleo.fila.trabalhador import limpar_erro
 
 log = logging.getLogger("estudio.backup")
 
@@ -189,10 +190,11 @@ class Agendador:
             situacao = rodar_se_precisar(
                 self.cliente, self.bucket, self.database_url, agora, self.pg_dump
             )
+            log.info("backup conferido: %s", situacao)
             if situacao in ("feito", "ja_existia"):
                 self.ultimo_ok = agora
         except Exception as erro:
-            log.warning("backup falhou: %s", type(erro).__name__)
+            log.warning("backup falhou: %s", limpar_erro(f"{type(erro).__name__}: {erro}")[:300])
             # um evento por hora, no máximo, para não lotar o registro
             ultima = self._ultima_falha_avisada
             if ultima is None or agora - ultima > timedelta(hours=1):
