@@ -42,6 +42,7 @@ class EntradaFoto(Entrada):
     sequencia: bool = False  # faz parte de uma série de fotos da mesma pessoa
     e_ancora: bool = False  # é a foto âncora (close do rosto) da série
     ancora: Imagem | None = None  # Image 2: a âncora já aprovada pelo juiz
+    cenario_foto: Imagem | None = None  # foto do lugar enviada pela loja (fica igual)
     tamanho: Tamanho = "1K"
 
     @model_validator(mode="after")
@@ -71,6 +72,8 @@ def _maos(p: Pedido, chaves: tuple[str, ...]) -> bool:
 
 
 def _espelho_ok(p: Pedido) -> bool:
+    if p.entrada.cenario_foto is not None:  # espelhos reais da loja: vêm da foto, não inventados
+        return True
     t = _texto(p)
     return "mirror" not in t or "one single" in t
 
@@ -144,12 +147,20 @@ class NoFoto(No):
             f"Setting: {entrada.cenario.strip().rstrip('.')}."
         )
         ancora = ANCORA if entrada.ancora is not None else ""
+        if entrada.cenario_foto is not None:
+            n = 3 if entrada.ancora is not None else 2
+            ancora += (
+                f" Image {n} = the real store room: keep the room exactly as in image {n} "
+                "(same furniture, walls, mirrors and light); mirror reflections show only the "
+                "empty room, no people."
+            )
         idade = (
             f" She is {entrada.idade} years old; keep her youthful {entrada.idade}-year-old "
             "face, do not age her. "
         )
         prompt = base + ancora + idade + entrada.cena.strip()
         imagens = [entrada.influencer] + ([entrada.ancora] if entrada.ancora else [])
+        imagens += [entrada.cenario_foto] if entrada.cenario_foto else []
         partes = [{"text": prompt}] + [
             {"inlineData": {"mimeType": i.mime, "data": i.dados_b64}} for i in imagens
         ]
