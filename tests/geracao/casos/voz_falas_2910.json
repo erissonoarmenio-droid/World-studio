@@ -1,0 +1,17 @@
+{
+ "origem": "falas de 29/10: 'antigas' com reticências (E3) e 'finais' que passaram 5 de 5",
+ "antigas": {
+  "c1": "Gente, vou provar pra vocês que eu sou inteligência artificial. Olha meu rosto, a pele, o dente...",
+  "c2": "As mãos, que a IA sempre errava... cinco dedinhos, ó.",
+  "c3": "Reflexo no espelho, tecido mexendo... nada derretendo.",
+  "c4": "Andar, pegar as coisas... tudo certinho.",
+  "c5": "E essa camisa? Essa é de verdade, tá aqui na loja. Corre!"
+ },
+ "finais": {
+  "c1": "Gente, vou provar pra vocês que eu sou inteligência artificial, olha meu rosto, a pele, o dente.",
+  "c2": "As mãos, que a IA sempre errava, cinco dedinhos, ó.",
+  "c3": "Olha o reflexo no espelho, o tecido mexendo, e nada derretendo, viu?",
+  "c4": "E ó, andando, pegando as coisas, tudo certinho.",
+  "c5": "E essa camisa? Essa é de verdade, tá aqui na loja, corre!"
+ }
+}

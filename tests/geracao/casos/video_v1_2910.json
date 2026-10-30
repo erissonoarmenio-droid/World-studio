@@ -1,0 +1,30 @@
+{
+ "origem": "vídeos v1 de 29/10 (prompt fora do método; fala trocada em 4 de 5)",
+ "casos": {
+  "c1": {
+   "prompt": "Phone front camera selfie from the chest up, arm extended, slight handheld micro-movement; the shot is her phone's front camera and the phone is not visible. She smiles, talks straight to the lens, touches her cheek briefly. Vertical 9:16 smartphone video, real handheld phone footage look, natural light of a small Brazilian clothing boutique. The woman is exactly the person in image 1: same face, same age (25), same hair, same light orange linen shirt and light-blue jeans, unchanged for the whole video. She speaks Brazilian Portuguese and says exactly the words of audio 1, with her lips perfectly in sync with audio 1; use audio 1 as her voice. Exactly two arms, five fingers per hand. No music, only the phone microphone sound. No text, no logos, no subtitles.",
+   "fala": "Gente, vou provar pra vocês que eu sou inteligência artificial, olha meu rosto, a pele, o dente.",
+   "duracao": 8
+  },
+  "c2": {
+   "prompt": "Phone propped on a tripod, medium shot. She raises both open hands to the camera showing five fingers on each, wiggles them, then lightly touches the shirt collar. Vertical 9:16 smartphone video, real handheld phone footage look, natural light of a small Brazilian clothing boutique. The woman is exactly the person in image 1: same face, same age (25), same hair, same light orange linen shirt and light-blue jeans, unchanged for the whole video. She speaks Brazilian Portuguese and says exactly the words of audio 1, with her lips perfectly in sync with audio 1; use audio 1 as her voice. Exactly two arms, five fingers per hand. No music, only the phone microphone sound. No text, no logos, no subtitles.",
+   "fala": "As mãos, que a IA sempre errava, cinco dedinhos, ó.",
+   "duracao": 5
+  },
+  "c3": {
+   "prompt": "Phone propped, full-body shot. She stands in front of one single tall mirror and does a slow half turn; the shirt fabric swings; her reflection in that one mirror follows her movement correctly. Vertical 9:16 smartphone video, real handheld phone footage look, natural light of a small Brazilian clothing boutique. The woman is exactly the person in image 1: same face, same age (25), same hair, same light orange linen shirt and light-blue jeans, unchanged for the whole video. She speaks Brazilian Portuguese and says exactly the words of audio 1, with her lips perfectly in sync with audio 1; use audio 1 as her voice. Exactly two arms, five fingers per hand. No music, only the phone microphone sound. No text, no logos, no subtitles.",
+   "fala": "Olha o reflexo no espelho, o tecido mexendo, e nada derretendo, viu?",
+   "duracao": 6
+  },
+  "c4": {
+   "prompt": "Handheld phone following her as she walks slowly along the clothing rack and takes a wooden hanger with a garment, talking to the camera. Vertical 9:16 smartphone video, real handheld phone footage look, natural light of a small Brazilian clothing boutique. The woman is exactly the person in image 1: same face, same age (25), same hair, same light orange linen shirt and light-blue jeans, unchanged for the whole video. She speaks Brazilian Portuguese and says exactly the words of audio 1, with her lips perfectly in sync with audio 1; use audio 1 as her voice. Exactly two arms, five fingers per hand. No music, only the phone microphone sound. No text, no logos, no subtitles.",
+   "fala": "E ó, andando, pegando as coisas, tudo certinho.",
+   "duracao": 4
+  },
+  "c5": {
+   "prompt": "Phone propped, medium shot. She holds the front of the orange shirt to show it, smiles and talks to the camera, ends with a small wave. Vertical 9:16 smartphone video, real handheld phone footage look, natural light of a small Brazilian clothing boutique. The woman is exactly the person in image 1: same face, same age (25), same hair, same light orange linen shirt and light-blue jeans, unchanged for the whole video. She speaks Brazilian Portuguese and says exactly the words of audio 1, with her lips perfectly in sync with audio 1; use audio 1 as her voice. Exactly two arms, five fingers per hand. No music, only the phone microphone sound. No text, no logos, no subtitles.",
+   "fala": "E essa camisa? Essa é de verdade, tá aqui na loja, corre!",
+   "duracao": 5
+  }
+ }
+}

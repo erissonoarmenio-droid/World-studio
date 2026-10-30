@@ -1,0 +1,65 @@
+{
+ "origem": "prompts v2 de 29/10 (fórmula de 12 blocos, passaram no checker)",
+ "casos": {
+  "c1": {
+   "fala": "Gente, vou provar pra vocês que eu sou inteligência artificial, olha meu rosto, a pele, o dente.",
+   "duracao": 8,
+   "objetivo": "Create a talking selfie clip from @image1.",
+   "formato": "8 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, phone front camera selfie framing from the chest up.",
+   "cenario": "The fitting room behind her: linen curtain, wall hooks with hangers, a clothing rack.",
+   "batidas": "The video opens with her looking straight into the lens, half-smile, slight handheld micro-movement; the shot is her phone's front camera and the phone is not visible. She says in Brazilian Portuguese: {fala} Quick beat — she leans a little closer and smiles showing her teeth, silent. Final shot — she holds the smile for the final second.",
+   "tom": "The tone is playful, confident, warm — she takes a natural breath before speaking and never rushes.",
+   "vibe": "The overall feel is real and fun — like a story she posted for her friends.",
+   "prompt_esperado": "Create a talking selfie clip from @image1. @image1 is the first frame and the identity reference: keep this exact woman, her face, age and hair. @audio1 is her voice: match the tone and pacing of @audio1, not its words. 8 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, phone front camera selfie framing from the chest up. The fitting room behind her: linen curtain, wall hooks with hangers, a clothing rack. The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans. The video opens with her looking straight into the lens, half-smile, slight handheld micro-movement; the shot is her phone's front camera and the phone is not visible. She says in Brazilian Portuguese: \"Gente, vou provar pra vocês que eu sou inteligência artificial, olha meu rosto, a pele, o dente.\" Quick beat — she leans a little closer and smiles showing her teeth, silent. Final shot — she holds the smile for the final second. The tone is playful, confident, warm — she takes a natural breath before speaking and never rushes. Natural phone quality, not color graded, slight grain, no ring light. Sound direct from the phone mic, ambient room tone, no music. Plain objects, no text, no logos. Exactly two arms, five fingers per hand. The overall feel is real and fun — like a story she posted for her friends.",
+   "peca": "The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans."
+  },
+  "c2": {
+   "fala": "As mãos, que a IA sempre errava, cinco dedinhos, ó.",
+   "duracao": 5,
+   "objetivo": "Create a talking clip from @image1.",
+   "formato": "5 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, phone propped on a shelf facing her, waist up.",
+   "cenario": "The boutique behind her: clothing racks, wooden hangers, a plant.",
+   "batidas": "The video opens with her raising both open hands to the camera, palms out, and she says in Brazilian Portuguese: {fala} Jump cut — silent, she slowly wiggles her fingers and laughs once. Final shot — she lowers her hands and holds the pose for the final second.",
+   "tom": "The tone is amused, relaxed, warm — natural pause after the sentence; the propped phone wobbles slightly.",
+   "vibe": "The overall feel is real and casual — like a quick video for her group chat.",
+   "prompt_esperado": "Create a talking clip from @image1. @image1 is the first frame and the identity reference: keep this exact woman, her face, age and hair. @audio1 is her voice: match the tone and pacing of @audio1, not its words. 5 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, phone propped on a shelf facing her, waist up. The boutique behind her: clothing racks, wooden hangers, a plant. The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans. The video opens with her raising both open hands to the camera, palms out, and she says in Brazilian Portuguese: \"As mãos, que a IA sempre errava, cinco dedinhos, ó.\" Jump cut — silent, she slowly wiggles her fingers and laughs once. Final shot — she lowers her hands and holds the pose for the final second. The tone is amused, relaxed, warm — natural pause after the sentence; the propped phone wobbles slightly. Natural phone quality, not color graded, slight grain, no ring light. Sound direct from the phone mic, ambient room tone, no music. Plain objects, no text, no logos. Exactly two arms, five fingers per hand. The overall feel is real and casual — like a quick video for her group chat.",
+   "peca": "The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans."
+  },
+  "c3": {
+   "fala": "Olha o reflexo no espelho, o tecido mexendo, e nada derretendo, viu?",
+   "duracao": 6,
+   "objetivo": "Create a talking mirror clip from @image1.",
+   "formato": "6 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, phone propped facing her and one single tall standing mirror, full body.",
+   "cenario": "The boutique around her: a patterned rug, a clothing rack, a linen curtain. Only one mirror in the frame; her reflection follows her movement correctly.",
+   "batidas": "The video opens with her standing in front of the mirror; she does a slow half turn so the shirt fabric swings, then faces the camera and says in Brazilian Portuguese: {fala} Final shot — silent, she smiles and holds the pose for the final second.",
+   "tom": "The tone is light, amused, confident — she speaks unhurried after the turn; the propped phone wobbles slightly.",
+   "vibe": "The overall feel is real and spontaneous — like a story she posted from the shop.",
+   "prompt_esperado": "Create a talking mirror clip from @image1. @image1 is the first frame and the identity reference: keep this exact woman, her face, age and hair. @audio1 is her voice: match the tone and pacing of @audio1, not its words. 6 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, phone propped facing her and one single tall standing mirror, full body. The boutique around her: a patterned rug, a clothing rack, a linen curtain. Only one mirror in the frame; her reflection follows her movement correctly. The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans. The video opens with her standing in front of the mirror; she does a slow half turn so the shirt fabric swings, then faces the camera and says in Brazilian Portuguese: \"Olha o reflexo no espelho, o tecido mexendo, e nada derretendo, viu?\" Final shot — silent, she smiles and holds the pose for the final second. The tone is light, amused, confident — she speaks unhurried after the turn; the propped phone wobbles slightly. Natural phone quality, not color graded, slight grain, no ring light. Sound direct from the phone mic, ambient room tone, no music. Plain objects, no text, no logos. Exactly two arms, five fingers per hand. The overall feel is real and spontaneous — like a story she posted from the shop.",
+   "peca": "The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans."
+  },
+  "c4": {
+   "fala": "E ó, andando, pegando as coisas, tudo certinho.",
+   "duracao": 5,
+   "objetivo": "Create a walking talking clip from @image1.",
+   "formato": "5 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, handheld phone at chest height following her.",
+   "cenario": "The boutique aisle: a long clothing rack, wooden hangers, shelves with folded shirts.",
+   "batidas": "The video opens with her walking slowly along the rack, slight handheld micro-movement; she takes one wooden hanger with a garment and says in Brazilian Portuguese: {fala} Final shot — silent, she holds the hanger up and smiles for the final second.",
+   "tom": "The tone is casual, cheerful, relaxed — she talks between steps, never rushing.",
+   "vibe": "The overall feel is real and easy — like a friend showing you around her shop.",
+   "prompt_esperado": "Create a walking talking clip from @image1. @image1 is the first frame and the identity reference: keep this exact woman, her face, age and hair. @audio1 is her voice: match the tone and pacing of @audio1, not its words. 5 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, handheld phone at chest height following her. The boutique aisle: a long clothing rack, wooden hangers, shelves with folded shirts. The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans. The video opens with her walking slowly along the rack, slight handheld micro-movement; she takes one wooden hanger with a garment and says in Brazilian Portuguese: \"E ó, andando, pegando as coisas, tudo certinho.\" Final shot — silent, she holds the hanger up and smiles for the final second. The tone is casual, cheerful, relaxed — she talks between steps, never rushing. Natural phone quality, not color graded, slight grain, no ring light. Sound direct from the phone mic, ambient room tone, no music. Plain objects, no text, no logos. Exactly two arms, five fingers per hand. The overall feel is real and easy — like a friend showing you around her shop.",
+   "peca": "The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans."
+  },
+  "c5": {
+   "fala": "E essa camisa? Essa é de verdade, tá aqui na loja, corre!",
+   "duracao": 6,
+   "objetivo": "Create a closing talking clip from @image1.",
+   "formato": "6 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, phone propped facing her, waist up.",
+   "cenario": "The boutique behind her: colorful clothing racks, a linen curtain, ceiling lamps.",
+   "batidas": "The video opens with her lightly holding the front of the shirt to show it and saying in Brazilian Portuguese: {fala} Final shot — silent, she smiles, gives a small wave and holds the pose for the final second.",
+   "tom": "The tone is warm, upbeat, confident — natural breath between the sentences; the propped phone wobbles slightly.",
+   "vibe": "The overall feel is real and friendly — like a story inviting her followers to the shop.",
+   "prompt_esperado": "Create a closing talking clip from @image1. @image1 is the first frame and the identity reference: keep this exact woman, her face, age and hair. @audio1 is her voice: match the tone and pacing of @audio1, not its words. 6 seconds UGC style story, filmed on smartphone, warm boutique ceiling light, phone propped facing her, waist up. The boutique behind her: colorful clothing racks, a linen curtain, ceiling lamps. The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans. The video opens with her lightly holding the front of the shirt to show it and saying in Brazilian Portuguese: \"E essa camisa? Essa é de verdade, tá aqui na loja, corre!\" Final shot — silent, she smiles, gives a small wave and holds the pose for the final second. The tone is warm, upbeat, confident — natural breath between the sentences; the propped phone wobbles slightly. Natural phone quality, not color graded, slight grain, no ring light. Sound direct from the phone mic, ambient room tone, no music. Plain objects, no text, no logos. Exactly two arms, five fingers per hand. The overall feel is real and friendly — like a story inviting her followers to the shop.",
+   "peca": "The light orange linen shirt stays unchanged in every shot: short sleeves, pointed collar, tone-on-tone buttons, matte slightly textured linen, not shiny, worn untucked over light-blue jeans."
+  }
+ }
+}
