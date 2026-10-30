@@ -27,6 +27,11 @@ class Config(BaseSettings):
     pg_dump: str = "pg_dump"  # no Docker: o pg_dump 16 (mesma versão do banco)
     backup_ativo: bool = True  # o backup diário roda junto com o servidor
 
+    # Fornecedores de geração (nós). Vazio = desligado; os testes usam fornecedor simulado.
+    google_api_key: SecretStr | None = None  # foto (Nano Banana), voz (TTS) e juiz
+    atlas_api_key: SecretStr | None = None  # vídeo (Seedance) e lipsync
+    decart_api_key: SecretStr | None = None  # vestir a peça no vídeo (reserva)
+
     @property
     def r2_configurado(self) -> bool:
         return bool(self.r2_account_id and self.r2_access_key_id and self.r2_secret_access_key)
@@ -37,11 +42,14 @@ class Config(BaseSettings):
         "r2_secret_access_key",
         "r2_bucket_midias",
         "r2_bucket_backup",
+        "google_api_key",
+        "atlas_api_key",
+        "decart_api_key",
         mode="before",
     )
     @classmethod
     def tirar_espacos(cls, valor: object) -> object:
-        """Ao colar uma chave no painel, vem junto um Enter ou espaço; isso quebra a assinatura."""
+        """Ao colar uma chave no painel, vem junto um Enter ou espaço; isso quebra a chamada."""
         return valor.strip() if isinstance(valor, str) else valor
 
     @field_validator("database_url")

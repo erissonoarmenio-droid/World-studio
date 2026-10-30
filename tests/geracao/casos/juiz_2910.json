@@ -1,0 +1,213 @@
+{
+ "foto": [
+  {
+   "mesma_pessoa": 7,
+   "idade_ref": 28,
+   "idade_foto": 27,
+   "maos_ok": true,
+   "dedos_contados": "Mão direita fora de quadro; dedos da mão esquerda parcialmente visíveis",
+   "espelho_reflexo_ok": null,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [
+    "Perspectiva levemente rígida no antebraço estendido"
+   ],
+   "foto": "c1.png"
+  },
+  {
+   "mesma_pessoa": 7,
+   "idade_ref": 28,
+   "idade_foto": 28,
+   "maos_ok": true,
+   "dedos_contados": "5 dedos na mão esquerda, 5 dedos na mão direita",
+   "espelho_reflexo_ok": null,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [
+    "pose e textura das mãos ligeiramente rígidas"
+   ],
+   "foto": "c2.png"
+  },
+  {
+   "mesma_pessoa": 6,
+   "idade_ref": 28,
+   "idade_foto": 26,
+   "maos_ok": true,
+   "dedos_contados": "Mão externa com 4 dedos visíveis; reflexo com dedos parcialmente nítidos",
+   "espelho_reflexo_ok": true,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [
+    "Caimento rígido da camisa nas costas",
+    "Pequena inconsistência no ângulo do reflexo"
+   ],
+   "foto": "c3.png"
+  },
+  {
+   "mesma_pessoa": 7,
+   "idade_ref": 26,
+   "idade_foto": 26,
+   "maos_ok": true,
+   "dedos_contados": "Mão direita com 5 dedos anatômicos segurando o cabide; mão esquerda parcialmente visível.",
+   "espelho_reflexo_ok": null,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [],
+   "foto": "c4.png"
+  },
+  {
+   "mesma_pessoa": 7,
+   "idade_ref": 27,
+   "idade_foto": 27,
+   "maos_ok": true,
+   "dedos_contados": "4 visíveis em cada mão, polegares ocultos",
+   "espelho_reflexo_ok": null,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [],
+   "foto": "c5.png"
+  },
+  {
+   "mesma_pessoa": 7,
+   "idade_ref": 26,
+   "idade_foto": 28,
+   "maos_ok": true,
+   "dedos_contados": "0 visíveis",
+   "espelho_reflexo_ok": true,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [
+    "Textura ligeiramente suavizada no braço em primeiro plano"
+   ],
+   "foto": "atlas_c1.jpg"
+  },
+  {
+   "mesma_pessoa": 3,
+   "idade_ref": 27,
+   "idade_foto": 38,
+   "maos_ok": false,
+   "dedos_contados": "6 dedos na mão esquerda do observador e 6 dedos na mão direita do observador",
+   "espelho_reflexo_ok": null,
+   "texto_ou_logo": false,
+   "parece_foto_real": 5,
+   "defeitos": [
+    "Polidactilia em ambas as mãos (seis dedos em cada)",
+    "Divergência notável de traços faciais e idade comparado à referência"
+   ],
+   "foto": "atlas_c2.jpg"
+  },
+  {
+   "mesma_pessoa": 4,
+   "idade_ref": 28,
+   "idade_foto": 32,
+   "maos_ok": true,
+   "dedos_contados": "4 dedos visíveis na mão em primeiro plano; reflexos indistintos",
+   "espelho_reflexo_ok": true,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [
+    "Divergência nos traços faciais em relação à referência",
+    "Leve perda de definição nos dedos refletidos"
+   ],
+   "foto": "atlas_c3.jpg"
+  },
+  {
+   "mesma_pessoa": 5,
+   "idade_ref": 27,
+   "idade_foto": 39,
+   "maos_ok": true,
+   "dedos_contados": "Mão direita com 5 dedos visíveis; mão esquerda com dedos parcialmente encobertos pelo cabide",
+   "espelho_reflexo_ok": null,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [
+    "Aparência facial mais envelhecida que na referência",
+    "Ligeira distorção anatômica na mão esquerda sobre o cabide"
+   ],
+   "foto": "atlas_c4.jpg"
+  },
+  {
+   "mesma_pessoa": 7,
+   "idade_ref": 28,
+   "idade_foto": 31,
+   "maos_ok": true,
+   "dedos_contados": "5 visíveis na mão esquerda, mão direita com dedos flexionados",
+   "espelho_reflexo_ok": true,
+   "texto_ou_logo": false,
+   "parece_foto_real": 7,
+   "defeitos": [
+    "Leve perda de definição nas pontas dos dedos",
+    "Pequenas assimetrias nas luminárias superiores"
+   ],
+   "foto": "atlas_c5.jpg"
+  }
+ ],
+ "video": [
+  {
+   "transcricao": "Gente, vou provar pra vocês que eu sou inteligência artificial. Ai, meu Deus, eu pareço uma gente.",
+   "sincronia_boca": 6,
+   "mesma_pessoa_do_inicio_ao_fim": 7,
+   "parecida_com_referencia": 7,
+   "idade_aparente": 28,
+   "maos_ok": false,
+   "camisa_igual_o_tempo_todo": true,
+   "espelho_ok": null,
+   "texto_ou_logo": false,
+   "celular_visivel_indevido": false,
+   "musica": false,
+   "parece_video_real": 6,
+   "defeitos": [
+    "segundo 5: mão tocando o rosto apresenta artefatos de renderização e dedos levemente distorcidos",
+    "segundo 6: fala dita diverge da frase esperada no roteiro"
+   ],
+   "clip": "v_c1.mp4",
+   "palavras_certas": 0.65
+  },
+  {
+   "transcricao": "As mãos, que a IA sempre errava, cinco dedinhos, ó.",
+   "sincronia_boca": 6,
+   "mesma_pessoa_do_inicio_ao_fim": 7,
+   "parecida_com_referencia": 7,
+   "idade_aparente": 30,
+   "maos_ok": true,
+   "camisa_igual_o_tempo_todo": true,
+   "espelho_ok": null,
+   "texto_ou_logo": false,
+   "celular_visivel_indevido": false,
+   "musica": false,
+   "parece_video_real": 6,
+   "defeitos": [
+    "segundo 0-2: sincronia labial ligeiramente rígida e artificial",
+    "segundo 0-3: articulação dos dedos estática com aspecto gerado por IA"
+   ],
+   "clip": "v_c2.mp4",
+   "palavras_certas": 1.0
+  },
+  {
+   "transcricao": "É o reflexo no espelho, o que tô sentindo, e nada de entender você.",
+   "sincronia_boca": 5,
+   "mesma_pessoa_do_inicio_ao_fim": 7,
+   "parecida_com_referencia": 7,
+   "idade_aparente": 28,
+   "maos_ok": true,
+   "camisa_igual_o_tempo_todo": true,
+   "espelho_ok": false,
+   "texto_ou_logo": false,
+   "celular_visivel_indevido": false,
+   "musica": false,
+   "parece_video_real": 5,
+   "defeitos": [
+    "segundo 0: fala totalmente divergente do texto esperado",
+    "segundo 2: distorção leve na perspectiva do reflexo ao girar o rosto"
+   ],
+   "clip": "v_c3.mp4",
+   "palavras_certas": 0.54
+  }
+ ],
+ "origem": "respostas reais do juiz (gemini-3.8-flash) de 29/10: fotos Google c1–c5, Atlas c1–c5; vídeos v1 c1–c3",
+ "falas_esperadas_video": {
+  "c1": "Gente, vou provar pra vocês que eu sou inteligência artificial. Olha meu rosto, a pele, o dente...",
+  "c2": "As mãos, que a IA sempre errava... cinco dedinhos, ó.",
+  "c3": "Reflexo no espelho, tecido mexendo... nada derretendo."
+ }
+}

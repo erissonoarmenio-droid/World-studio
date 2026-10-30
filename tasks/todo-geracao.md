@@ -19,17 +19,17 @@ Spec: `docs/spec/SPEC-geracao.md` · Plano: `tasks/plan-geracao.md`. Verificaç�
 
 ### Parada A (depois de 1–3): Eri vê `--listar` e os testes do caso v1 barrado.
 
-- [ ] **4. Envio único com aprovação + fornecedores** (M)
+- [x] **4. Envio único com aprovação + fornecedores** (M)
   - Aceite: `enviar(pedido, aprovacao)` levanta `SemAprovacao` sem ok; grava o id do fornecedor; segunda chamada só consulta o status; clientes `google.py` (inclui modo lote), `atlas.py` (upload de mídia + generate + consulta), `decart.py`; chaves só pelo config.
   - Verificar: testes com fornecedor simulado (sem rede): sem aprovação → erro; erro 503 → não reenvia, consulta status.
   - Arquivos: `app/geracao/nos/base.py`, `app/geracao/fornecedores/{google,atlas,decart}.py`, `app/config.py`, `tests/geracao/test_envio.py`.
 
-- [ ] **5. Nó foto (Google só)** (S)
+- [x] **5. Nó foto (Google só)** (S)
   - Aceite: blocos do `diretor-foto`; regras E5 (âncora na sequência + idade), E6 (cena de mãos), E7 (um espelho só), E15 (fornecedor ≠ Atlas).
   - Verificar: sequência sem âncora bloqueada; pedido pela Atlas recusado; os 5 pedidos que funcionaram em 29/10 passam.
   - Arquivos: `app/geracao/nos/foto.py`, `tests/geracao/test_no_foto.py`.
 
-- [ ] **6. Nó juiz** (M)
+- [x] **6. Nó juiz** (M)
   - Aceite: vereditos de foto, voz e vídeo com os limites da spec; transcrição só do áudio no vídeo.
   - Verificar: com as respostas gravadas de 29–30/10, a foto 2 da Atlas (6 dedos) reprova, as fotos do Google passam, os clipes v1 reprovam pela fala.
   - Arquivos: `app/geracao/nos/juiz.py`, `tests/geracao/casos/juiz_*.json`, `tests/geracao/test_no_juiz.py`.

@@ -50,6 +50,8 @@ class EntradaVideo(Entrada):
     batidas: str  # [7] com {fala} no lugar exato da fala
     tom: str  # [8]
     vibe: str  # [12]
+    imagem_url: str | None = None  # @image1: primeiro quadro (foto da cena aprovada pelo juiz)
+    audio_url: str | None = None  # @audio1: a voz já conferida
 
     @field_validator("fala")
     @classmethod
@@ -134,6 +136,16 @@ REGRAS = registrar(
             "(câmera na mão não enquadra isso).",
             origem="checker item 18 — 21/10",
             checar=_enquadramento_possivel,
+        ),
+        Regra(
+            id="video.referencias_no_pedido",
+            nivel="bloqueia",
+            faca="O pedido leva a imagem (@image1) e o áudio (@audio1) que o prompt cita.",
+            origem="fórmula §6 (referência citada e não enviada vira personagem inventado)",
+            checar=lambda p: (
+                bool(p.payload.get("reference_images")) == ("@image1" in _texto(p))
+                and bool(p.payload.get("reference_audios")) == ("@audio1" in _texto(p))
+            ),
         ),
         Regra(
             id="video.sem_negative_prompt",
@@ -231,8 +243,11 @@ class NoVideo(No):
             "ratio": "9:16",
             "generate_audio": True,
             "watermark": False,
-            # reference_images / reference_audios entram no envio (URLs da mídia no R2)
         }
+        if entrada.imagem_url:
+            payload["reference_images"] = [entrada.imagem_url]
+        if entrada.audio_url:
+            payload["reference_audios"] = [entrada.audio_url]
         return Pedido(
             no=self.nome,
             fornecedor="atlas",

@@ -128,13 +128,13 @@ class NoVoz(No):
         )
 
 
-def _palavras(texto: str) -> list[str]:
+def palavras_de(texto: str) -> list[str]:
     return re.sub(r"[^a-zà-ú ]", " ", texto.lower()).split()
 
 
 def conferir_voz(fala: str, transcricao: str, duracao_s: float) -> Veredito:
     """Juiz da voz: compara a transcrição do áudio com a fala e mede a duração."""
-    sim = difflib.SequenceMatcher(None, _palavras(fala), _palavras(transcricao)).ratio()
+    sim = difflib.SequenceMatcher(None, palavras_de(fala), palavras_de(transcricao)).ratio()
     razao = duracao_s / segundos_esperados(fala)
     motivos = []
     if sim < LIMITE_PALAVRAS:

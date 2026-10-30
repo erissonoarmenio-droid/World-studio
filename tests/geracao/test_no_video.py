@@ -14,7 +14,8 @@ CAMPOS = ("fala", "duracao", "objetivo", "formato", "cenario", "peca", "batidas"
 
 
 def entrada_v2(c: str, **troca) -> EntradaVideo:
-    dados = {k: V2[c][k] for k in CAMPOS} | troca
+    urls = {"imagem_url": f"https://r2/{c}.png", "audio_url": f"https://r2/{c}.wav"}
+    dados = {k: V2[c][k] for k in CAMPOS} | urls | troca
     return EntradaVideo(**dados)
 
 
@@ -80,3 +81,9 @@ def test_negative_prompt_no_payload_bloqueia():
     p = no.montar_pedido(entrada_v2("c3"))
     p2 = p.model_copy(update={"payload": p.payload | {"negative_prompt": "blur"}})
     assert "video.sem_negative_prompt" in {f.regra_id for f in no.checar(p2).falhas}
+
+
+def test_referencia_citada_e_nao_enviada_bloqueia():
+    with pytest.raises(PedidoBloqueado) as erro:
+        NoVideo().preparar(entrada_v2("c1", audio_url=None))
+    assert [f.regra_id for f in erro.value.relatorio.falhas] == ["video.referencias_no_pedido"]

@@ -1,0 +1,28 @@
+{
+ "origem": "pedidos de foto do Google de 29/10 (gfoto.py): c1 âncora, c2–c5 com a âncora como Image 2",
+ "aparencia": "dark wavy shoulder-length",
+ "peca": "She wears a light orange linen button-up shirt (loose, short sleeves) over the light-blue jeans.",
+ "cenario": "a small, cozy Brazilian clothing boutique",
+ "casos": {
+  "c1": {
+   "cena": "SCENE: close-up selfie taken by her own hand at arm's length inside the boutique fitting room (curtain behind her), face filling the upper half, warm smile showing teeth, looking straight into the lens.",
+   "prompt_2910": "Image 1 = the woman (identity reference). Keep her exact face, skin, hair (dark wavy shoulder-length), body and age. Photorealistic vertical 9:16 frame that looks like a real smartphone photo: natural skin texture with pores, slight imperfections, soft real store lighting, no beauty filter, no text, no logos. She wears a light orange linen button-up shirt (loose, short sleeves) over the light-blue jeans. Setting: a small, cozy Brazilian clothing boutique. She is 25 years old; keep her youthful 25-year-old face, do not age her. SCENE: close-up selfie taken by her own hand at arm's length inside the boutique fitting room (curtain behind her), face filling the upper half, warm smile showing teeth, looking straight into the lens."
+  },
+  "c2": {
+   "cena": "SCENE: medium shot, she holds both hands open toward the camera at chest height, five fingers clearly visible on each hand, natural knuckles and nails; the shirt's small fabric tag visible at the collar. Phone on a tripod.",
+   "prompt_2910": "Image 1 = the woman (identity reference). Keep her exact face, skin, hair (dark wavy shoulder-length), body and age. Photorealistic vertical 9:16 frame that looks like a real smartphone photo: natural skin texture with pores, slight imperfections, soft real store lighting, no beauty filter, no text, no logos. She wears a light orange linen button-up shirt (loose, short sleeves) over the light-blue jeans. Setting: a small, cozy Brazilian clothing boutique. Image 2 = the same woman in an earlier photo of this shoot: match this face exactly. She is 25 years old; keep her youthful 25-year-old face, do not age her. SCENE: medium shot, she holds both hands open toward the camera at chest height, five fingers clearly visible on each hand, natural knuckles and nails; the shirt's small fabric tag visible at the collar. Phone on a tripod."
+  },
+  "c3": {
+   "cena": "SCENE: full-body shot in front of the boutique's tall mirror, mid-turn, her reflection visible and consistent in the mirror, shirt fabric slightly swinging.",
+   "prompt_2910": "Image 1 = the woman (identity reference). Keep her exact face, skin, hair (dark wavy shoulder-length), body and age. Photorealistic vertical 9:16 frame that looks like a real smartphone photo: natural skin texture with pores, slight imperfections, soft real store lighting, no beauty filter, no text, no logos. She wears a light orange linen button-up shirt (loose, short sleeves) over the light-blue jeans. Setting: a small, cozy Brazilian clothing boutique. Image 2 = the same woman in an earlier photo of this shoot: match this face exactly. She is 25 years old; keep her youthful 25-year-old face, do not age her. SCENE: full-body shot in front of the boutique's tall mirror, mid-turn, her reflection visible and consistent in the mirror, shirt fabric slightly swinging."
+  },
+  "c4": {
+   "cena": "SCENE: walking along a clothing rack in the boutique, reaching to take a wooden hanger with a garment, three-quarter view, natural motion pose.",
+   "prompt_2910": "Image 1 = the woman (identity reference). Keep her exact face, skin, hair (dark wavy shoulder-length), body and age. Photorealistic vertical 9:16 frame that looks like a real smartphone photo: natural skin texture with pores, slight imperfections, soft real store lighting, no beauty filter, no text, no logos. She wears a light orange linen button-up shirt (loose, short sleeves) over the light-blue jeans. Setting: a small, cozy Brazilian clothing boutique. Image 2 = the same woman in an earlier photo of this shoot: match this face exactly. She is 25 years old; keep her youthful 25-year-old face, do not age her. SCENE: walking along a clothing rack in the boutique, reaching to take a wooden hanger with a garment, three-quarter view, natural motion pose."
+  },
+  "c5": {
+   "cena": "SCENE: medium shot facing camera in the middle of the boutique, both hands lightly holding the front of the orange shirt to show it, confident friendly expression, about to speak.",
+   "prompt_2910": "Image 1 = the woman (identity reference). Keep her exact face, skin, hair (dark wavy shoulder-length), body and age. Photorealistic vertical 9:16 frame that looks like a real smartphone photo: natural skin texture with pores, slight imperfections, soft real store lighting, no beauty filter, no text, no logos. She wears a light orange linen button-up shirt (loose, short sleeves) over the light-blue jeans. Setting: a small, cozy Brazilian clothing boutique. Image 2 = the same woman in an earlier photo of this shoot: match this face exactly. She is 25 years old; keep her youthful 25-year-old face, do not age her. SCENE: medium shot facing camera in the middle of the boutique, both hands lightly holding the front of the orange shirt to show it, confident friendly expression, about to speak."
+  }
+ }
+}
