@@ -22,7 +22,11 @@ from app.geracao.nos.regras import registrar
 MODELO = "bytedance/seedance-2.0-fast/reference-to-video"
 MODELO_25 = "bytedance/seedance-2.5/reference-to-video"  # rascunho 480p → 1080p (Sirio)
 PRECO_POR_SEGUNDO = Decimal("0.072")  # Atlas, 2.0 fast 480p, 29/10 (fórmula §6)
-PRECO = {MODELO: PRECO_POR_SEGUNDO, MODELO_25: Decimal("0.134")}  # 2.5: rascunho = 480p
+PRECO = {MODELO: PRECO_POR_SEGUNDO, MODELO_25: Decimal("0.134")}  # por segundo em 480p
+# Cobrança por token (∝ pixels × segundos). Medido 30/10: 720p ≈ 2,25× o 480p (estimado);
+# draft-complete 1080p do 2.5 = US$ 0,594/s (US$ 4,76 por 8 s), não os 0,263 da tabela.
+FATOR_RESOLUCAO = {"480p": Decimal("1"), "720p": Decimal("2.25")}
+PRECO_COMPLETAR_1080_25 = Decimal("0.594")
 Modelo = Literal[
     "bytedance/seedance-2.0-fast/reference-to-video", "bytedance/seedance-2.5/reference-to-video"
 ]
@@ -66,6 +70,7 @@ class EntradaVideo(Entrada):
     audio_segundos: float | None = Field(default=None, gt=0)  # duração medida da voz
     modelo: Modelo = MODELO
     rascunho: bool = False  # 2.5: 480p barato; aprovado → draft-complete em 1080p
+    resolucao: Literal["480p", "720p"] = "480p"
 
     @field_validator("fala")
     @classmethod
@@ -291,7 +296,7 @@ class NoVideo(No):
             "model": entrada.modelo,
             "prompt": prompt,
             "duration": entrada.duracao,
-            "resolution": "480p",
+            "resolution": entrada.resolucao,
             "ratio": "9:16",
             "generate_audio": True,
             "watermark": False,
@@ -311,5 +316,7 @@ class NoVideo(No):
             entrada=entrada,
             prompt=prompt,
             payload=payload,
-            custo_estimado=PRECO[entrada.modelo] * entrada.duracao,
+            custo_estimado=PRECO[entrada.modelo]
+            * FATOR_RESOLUCAO["480p" if entrada.rascunho else entrada.resolucao]
+            * entrada.duracao,
         )
