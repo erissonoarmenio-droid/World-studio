@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
@@ -19,7 +20,17 @@ from app.geracao.nos.base import Entrada, No, Pedido, Regra, normalizar_texto
 from app.geracao.nos.regras import registrar
 
 MODELO = "bytedance/seedance-2.0-fast/reference-to-video"
-PRECO_POR_SEGUNDO = Decimal("0.072")  # Atlas, 480p, 29/10 (fórmula §6)
+MODELO_25 = "bytedance/seedance-2.5/reference-to-video"  # rascunho 480p → 1080p (Sirio)
+PRECO_POR_SEGUNDO = Decimal("0.072")  # Atlas, 2.0 fast 480p, 29/10 (fórmula §6)
+PRECO = {MODELO: PRECO_POR_SEGUNDO, MODELO_25: Decimal("0.134")}  # 2.5: rascunho = 480p
+Modelo = Literal[
+    "bytedance/seedance-2.0-fast/reference-to-video", "bytedance/seedance-2.5/reference-to-video"
+]
+# Movimento que disputa com a boca e faz o rosto oscilar (medido em 30/10: identidade cai na
+# virada da cena 3 e na caminhada da cena 4; guia de áudio do Seedance: tirar movimento de
+# cabeça da fala).
+MOVIMENTO = ("turn", "walk", "lean", "closer", "spin", "twirl", "zoom", "dance", "nod", "step")
+ENQUADRAMENTO_FALA = ("chest up", "close-up", "close up", "shoulders up")
 PALAVRAS_POR_SEGUNDO = 2.5  # fala lida sem pressa, já com pausas (fórmula §5)
 MARCA_FALA = "{fala}"
 
@@ -53,6 +64,8 @@ class EntradaVideo(Entrada):
     imagem_url: str | None = None  # @image1: primeiro quadro (foto da cena aprovada pelo juiz)
     audio_url: str | None = None  # @audio1: a voz já conferida
     audio_segundos: float | None = Field(default=None, gt=0)  # duração medida da voz
+    modelo: Modelo = MODELO
+    rascunho: bool = False  # 2.5: 480p barato; aprovado → draft-complete em 1080p
 
     @field_validator("fala")
     @classmethod
@@ -77,6 +90,12 @@ def _palavras(texto: str) -> int:
     return len([w for w in texto.split() if w != "—"])
 
 
+def _frase_da_fala(p: Pedido) -> str:
+    """O trecho das batidas onde a fala acontece (da frase que a contém até a fala)."""
+    antes = p.entrada.batidas.split(MARCA_FALA)[0]
+    return re.split(r"[.!?]\s|—", antes)[-1].lower()
+
+
 def _enquadramento_possivel(p: Pedido) -> bool:
     t = _texto(p).lower()
     return not ("front camera" in t and ("waist up" in t or "full body" in t))
@@ -98,14 +117,16 @@ REGRAS = registrar(
             faca='O @audio1 serve só para tom e ritmo: "match the tone and pacing of @audio1, '
             'not its words".',
             origem="E11 — 29/10 (o Seedance refaz a voz do áudio, nunca repassa as palavras)",
-            checar=lambda p: "not its words" in _texto(p),
+            checar=lambda p: "not its words" in _texto(p).lower(),
         ),
         Regra(
             id="video.papeis_das_referencias",
             nivel="bloqueia",
             faca='Cada referência diz o seu papel: "@image1 is ..." e "@audio1 is ...".',
             origem="E11 — 29/10 / fórmula §3 bloco 2",
-            checar=lambda p: "@image1 is" in _texto(p) and "@audio1 is" in _texto(p),
+            checar=lambda p: (
+                "@image1 is" in _texto(p).lower() and "@audio1 is" in _texto(p).lower()
+            ),
         ),
         Regra(
             id="video.cinco_dedos",
@@ -142,6 +163,23 @@ REGRAS = registrar(
             ),
         ),
         Regra(
+            id="video.parada_ao_falar",
+            nivel="bloqueia",
+            faca="Enquanto fala, ela fica parada e de frente: NÃO girar, andar, inclinar ou "
+            "aproximar na frase da fala; a ação vai antes ou depois, em silêncio.",
+            origem="E22 — 30/10 (rosto oscila na virada da cena 3 e na caminhada da cena 4; "
+            "boca estranha; Eri: 'os lábios não estão legais')",
+            checar=lambda p: not any(m in _frase_da_fala(p) for m in MOVIMENTO),
+        ),
+        Regra(
+            id="video.rosto_grande_ao_falar",
+            nivel="bloqueia",
+            faca='Cena com fala do peito para cima ("chest up" / "close-up"): rosto grande '
+            "no quadro.",
+            origem="E22 — 30/10 (rosto com 61–116 px, 12–23% da largura, em 480p: boca mole)",
+            checar=lambda p: any(k in p.entrada.formato.lower() for k in ENQUADRAMENTO_FALA),
+        ),
+        Regra(
             id="video.enquadramento_possivel",
             nivel="bloqueia",
             faca='NÃO pedir "front camera" junto com "waist up" ou "full body" '
@@ -155,8 +193,8 @@ REGRAS = registrar(
             faca="O pedido leva a imagem (@image1) e o áudio (@audio1) que o prompt cita.",
             origem="fórmula §6 (referência citada e não enviada vira personagem inventado)",
             checar=lambda p: (
-                bool(p.payload.get("reference_images")) == ("@image1" in _texto(p))
-                and bool(p.payload.get("reference_audios")) == ("@audio1" in _texto(p))
+                bool(p.payload.get("reference_images")) == ("@image1" in _texto(p).lower())
+                and bool(p.payload.get("reference_audios")) == ("@audio1" in _texto(p).lower())
             ),
         ),
         Regra(
@@ -247,8 +285,10 @@ class NoVideo(No):
             entrada.vibe,
         ]
         prompt = normalizar_texto(" ".join(b.strip() for b in blocos))
+        if entrada.modelo == MODELO_25:  # o 2.5 cita as referências como @Image1, @Audio1
+            prompt = prompt.replace("@image1", "@Image1").replace("@audio1", "@Audio1")
         payload = {
-            "model": MODELO,
+            "model": entrada.modelo,
             "prompt": prompt,
             "duration": entrada.duracao,
             "resolution": "480p",
@@ -256,6 +296,10 @@ class NoVideo(No):
             "generate_audio": True,
             "watermark": False,
         }
+        if entrada.rascunho:
+            if entrada.modelo != MODELO_25:
+                raise ValueError("rascunho só existe no Seedance 2.5")
+            payload["draft"] = True
         if entrada.imagem_url:
             payload["reference_images"] = [entrada.imagem_url]
         if entrada.audio_url:
@@ -263,9 +307,9 @@ class NoVideo(No):
         return Pedido(
             no=self.nome,
             fornecedor="atlas",
-            modelo=MODELO,
+            modelo=entrada.modelo,
             entrada=entrada,
             prompt=prompt,
             payload=payload,
-            custo_estimado=PRECO_POR_SEGUNDO * entrada.duracao,
+            custo_estimado=PRECO[entrada.modelo] * entrada.duracao,
         )

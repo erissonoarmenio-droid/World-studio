@@ -20,12 +20,37 @@ def entrada_v2(c: str, **troca) -> EntradaVideo:
 
 
 @pytest.mark.parametrize("c", sorted(V2))
-def test_os_5_prompts_v2_passam_e_saem_identicos(c):
-    pedido, rel = NoVideo().preparar(entrada_v2(c))
+def test_os_5_prompts_v2_saem_identicos(c):
+    pedido = NoVideo().montar_pedido(entrada_v2(c))
     assert pedido.prompt == V2[c]["prompt_esperado"]
+
+
+# E22 (30/10): depois de gerados, os v2 mostraram rosto oscilando e boca estranha nas cenas
+# em que ela se mexe ao falar ou aparece pequena. Só a selfie (c1) continua passando.
+BARRADOS_E22 = {
+    "c2": {"video.rosto_grande_ao_falar"},
+    "c3": {"video.parada_ao_falar", "video.rosto_grande_ao_falar"},
+    "c4": {"video.parada_ao_falar", "video.rosto_grande_ao_falar"},
+    "c5": {"video.rosto_grande_ao_falar"},
+}
+
+
+def test_v2_c1_passa():
+    _, rel = NoVideo().preparar(entrada_v2("c1"))
     assert rel.falhas == [], rel.resumo()
+
+
+@pytest.mark.parametrize("c", sorted(BARRADOS_E22))
+def test_v2_com_movimento_ou_rosto_pequeno_sao_barrados_pela_e22(c):
+    with pytest.raises(PedidoBloqueado) as erro:
+        NoVideo().preparar(entrada_v2(c))
+    assert {f.regra_id for f in erro.value.relatorio.falhas} == BARRADOS_E22[c]
+
+
+def test_payload_do_20_fast():
+    pedido = NoVideo().montar_pedido(entrada_v2("c2"))
     assert pedido.payload["model"] == MODELO and "negative_prompt" not in pedido.payload
-    assert pedido.custo_estimado == Decimal("0.072") * V2[c]["duracao"]
+    assert pedido.custo_estimado == Decimal("0.072") * V2["c2"]["duracao"]
 
 
 @pytest.mark.parametrize("c", sorted(V1))
@@ -48,9 +73,9 @@ def test_os_prompts_v1_de_2910_sao_bloqueados_pela_e11(c):
 
 
 def test_fala_longa_demais_para_o_clipe_bloqueia():
-    fala = " ".join(["palavra"] * 20)  # 20 / 2,5 = 8 s > 5 − 1
+    fala = " ".join(["palavra"] * 20)  # 20 / 2,5 = 8 s > 8 − 1
     with pytest.raises(PedidoBloqueado) as erro:
-        NoVideo().preparar(entrada_v2("c2", fala=fala))
+        NoVideo().preparar(entrada_v2("c1", fala=fala))
     assert [f.regra_id for f in erro.value.relatorio.falhas] == ["video.fala_cabe"]
 
 
@@ -91,7 +116,18 @@ def test_referencia_citada_e_nao_enviada_bloqueia():
 
 def test_voz_medida_maior_que_o_clipe_bloqueia():
     with pytest.raises(PedidoBloqueado) as erro:
-        NoVideo().preparar(entrada_v2("c3", audio_segundos=6.4))
+        NoVideo().preparar(entrada_v2("c1", audio_segundos=7.4))
     assert [f.regra_id for f in erro.value.relatorio.falhas] == ["video.audio_cabe"]
-    _, rel = NoVideo().preparar(entrada_v2("c3", audio_segundos=6.4, duracao=8))
+    _, rel = NoVideo().preparar(entrada_v2("c1", audio_segundos=7.4, duracao=9))
     assert not rel.bloqueado
+
+
+def test_seedance_25_em_rascunho():
+    from app.geracao.nos.video import MODELO_25
+
+    p, rel = NoVideo().preparar(entrada_v2("c1", modelo=MODELO_25, rascunho=True))
+    assert not rel.bloqueado and p.payload["draft"] is True and p.payload["model"] == MODELO_25
+    assert "@Image1 is" in p.prompt and "@Audio1" in p.prompt
+    assert p.custo_estimado == Decimal("0.134") * 8
+    with pytest.raises(ValueError):
+        NoVideo().montar_pedido(entrada_v2("c1", rascunho=True))  # 2.0 fast não tem rascunho

@@ -49,7 +49,7 @@ def atlas(*respostas):
 
 
 def pedido_video():
-    pedido, _ = NoVideo().preparar(entrada_v2("c2"))
+    pedido, _ = NoVideo().preparar(entrada_v2("c1"))
     return pedido
 
 
@@ -62,7 +62,7 @@ def test_sem_aprovacao_nada_sai():
 
 def test_custo_acima_do_aprovado_nada_sai():
     forn, sim = atlas()
-    barato = Aprovacao(por="eri", custo_max=Decimal("0.10"))  # o clipe de 5 s custa 0,36
+    barato = Aprovacao(por="eri", custo_max=Decimal("0.10"))  # o clipe de 8 s custa 0,58
     with pytest.raises(SemAprovacao):
         enviar(NoVideo(), pedido_video(), barato, forn, RegistroEmMemoria())
     assert sim.chamadas == []
