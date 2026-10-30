@@ -23,6 +23,7 @@ class Resposta:
     id: str | None = None  # id do trabalho no fornecedor (None quando a resposta é imediata)
     saidas: list[Any] = field(default_factory=list)  # URLs ou partes da resposta
     erro: str = ""
+    custo: float | None = None  # custo cobrado informado pelo fornecedor (Tein: usage.cost)
 
 
 class ErroFornecedor(Exception):

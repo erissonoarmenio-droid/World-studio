@@ -224,3 +224,33 @@ def test_decart_envia_multipart_e_consulta():
     assert d.enviar(p).id == "d1"
     assert d.consultar("d1").saidas == ["https://api.decart.ai/v1/jobs/d1/content"]
     assert sim.chamadas[0].headers["x-api-key"] == "chave-de-teste-123"
+
+
+def test_tein_envia_no_formato_dela_e_le_o_custo_cobrado():
+    from app.geracao.fornecedores.tein import Tein
+    from app.geracao.nos.video import EntradaVideo
+
+    sim = Simulado(
+        httpx.Response(202, json={"id": "gen_1", "status": "queued"}),
+        httpx.Response(
+            200,
+            json={
+                "id": "gen_1",
+                "status": "succeeded",
+                "data": [{"url": "https://media.tein.ai/g/1.mp4"}],
+                "usage": {"cost": 0.54},
+            },
+        ),
+    )
+    t = Tein(CHAVE, cliente=sim.cliente())
+    e = entrada_v2("c1").model_dump() | {"fornecedor": "tein", "resolucao": "720p"}
+    pedido, _ = NoVideo().preparar(EntradaVideo(**e))
+    assert pedido.custo_estimado == Decimal("0.0772") * 8
+    reg = RegistroEmMemoria()
+    assert enviar(NoVideo(), pedido, OK, t, reg).id == "gen_1"
+    corpo = json.loads(sim.chamadas[0].content)
+    assert corpo["model"] == "seedance-2" and corpo["quality"] == "fast"
+    assert corpo["reference_image"] and corpo["reference_audio"] and "idempotency_key" in corpo
+    assert "reference_images" not in corpo
+    final = enviar(NoVideo(), pedido, OK, t, reg)
+    assert final.estado == "pronto" and final.custo == 0.54 and sim.posts == 1

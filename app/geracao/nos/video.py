@@ -26,6 +26,14 @@ PRECO = {MODELO: PRECO_POR_SEGUNDO, MODELO_25: Decimal("0.134")}  # por segundo 
 # Cobrança por token (∝ pixels × segundos). Medido 30/10: 720p ≈ 2,25× o 480p (estimado);
 # draft-complete 1080p do 2.5 = US$ 0,594/s (US$ 4,76 por 8 s), não os 0,263 da tabela.
 FATOR_RESOLUCAO = {"480p": Decimal("1"), "720p": Decimal("2.25")}
+# Tein (Sirio): tabela Starter de 30/10, por segundo, já por resolução (conferir com usage.cost).
+PRECO_TEIN = {  # medido 30/10: c2 7 s US$ 0,529; c3 9 s 0,680; c4 7 s 0,529; c5 6 s 0,454
+    (MODELO, "480p"): Decimal("0.0359"),
+    (MODELO, "720p"): Decimal("0.0772"),
+    (MODELO_25, "480p"): Decimal("0.1279"),
+    (MODELO_25, "720p"): Decimal("0.2885"),
+}
+MODELO_TEIN = {MODELO: ("seedance-2", "fast"), MODELO_25: ("seedance-2-5", None)}
 PRECO_COMPLETAR_1080_25 = Decimal("0.594")
 Modelo = Literal[
     "bytedance/seedance-2.0-fast/reference-to-video", "bytedance/seedance-2.5/reference-to-video"
@@ -71,6 +79,7 @@ class EntradaVideo(Entrada):
     modelo: Modelo = MODELO
     rascunho: bool = False  # 2.5: 480p barato; aprovado → draft-complete em 1080p
     resolucao: Literal["480p", "720p"] = "480p"
+    fornecedor: Literal["atlas", "tein"] = "atlas"
 
     @field_validator("fala")
     @classmethod
@@ -93,6 +102,10 @@ def _texto(p: Pedido) -> str:
 
 def _palavras(texto: str) -> int:
     return len([w for w in texto.split() if w != "—"])
+
+
+def _antes_da_fala(p: Pedido) -> str:
+    return p.entrada.batidas.split(MARCA_FALA)[0].lower()
 
 
 def _frase_da_fala(p: Pedido) -> str:
@@ -177,6 +190,22 @@ REGRAS = registrar(
             checar=lambda p: not any(m in _frase_da_fala(p) for m in MOVIMENTO),
         ),
         Regra(
+            id="video.fala_sem_corte_antes",
+            nivel="bloqueia",
+            faca="NÃO pôr corte (jump cut) antes da fala no mesmo clipe: ação e fala viram dois "
+            "clipes separados, juntados na edição.",
+            origem="E23 — 30/10 (cenas 3 e 4 na Tein: a voz começou durante a ação, boca fechada "
+            "falando; corte virou fusão no fim; boca 3–4)",
+            checar=lambda p: "jump cut" not in _antes_da_fala(p),
+        ),
+        Regra(
+            id="video.fala_logo_no_inicio",
+            nivel="aviso",
+            faca="A fala começa logo no início; ação longa em silêncio antes dela desalinha a voz.",
+            origem="E23 — 30/10 (na cena 2, 1 s de mãos em silêncio funcionou: boca 7)",
+            checar=lambda p: "silent" not in _antes_da_fala(p),
+        ),
+        Regra(
             id="video.rosto_grande_ao_falar",
             nivel="bloqueia",
             faca='Cena com fala do peito para cima ("chest up" / "close-up"): rosto grande '
@@ -198,8 +227,10 @@ REGRAS = registrar(
             faca="O pedido leva a imagem (@image1) e o áudio (@audio1) que o prompt cita.",
             origem="fórmula §6 (referência citada e não enviada vira personagem inventado)",
             checar=lambda p: (
-                bool(p.payload.get("reference_images")) == ("@image1" in _texto(p).lower())
-                and bool(p.payload.get("reference_audios")) == ("@audio1" in _texto(p).lower())
+                bool(p.payload.get("reference_images") or p.payload.get("reference_image"))
+                == ("@image1" in _texto(p).lower())
+                and bool(p.payload.get("reference_audios") or p.payload.get("reference_audio"))
+                == ("@audio1" in _texto(p).lower())
             ),
         ),
         Regra(
@@ -309,14 +340,31 @@ class NoVideo(No):
             payload["reference_images"] = [entrada.imagem_url]
         if entrada.audio_url:
             payload["reference_audios"] = [entrada.audio_url]
+        resolucao = "480p" if entrada.rascunho else entrada.resolucao
+        custo = PRECO[entrada.modelo] * FATOR_RESOLUCAO[resolucao] * entrada.duracao
+        if entrada.fornecedor == "tein":
+            payload = _para_tein(payload)
+            custo = PRECO_TEIN[(entrada.modelo, resolucao)] * entrada.duracao
         return Pedido(
             no=self.nome,
-            fornecedor="atlas",
+            fornecedor=entrada.fornecedor,
             modelo=entrada.modelo,
             entrada=entrada,
             prompt=prompt,
             payload=payload,
-            custo_estimado=PRECO[entrada.modelo]
-            * FATOR_RESOLUCAO["480p" if entrada.rascunho else entrada.resolucao]
-            * entrada.duracao,
+            custo_estimado=custo,
         )
+
+
+def _para_tein(payload: dict) -> dict:
+    """Mesmo pedido no formato da Tein: model + quality, referências no singular."""
+    modelo, qualidade = MODELO_TEIN[payload["model"]]
+    tein = {k: v for k, v in payload.items() if k not in ("reference_images", "reference_audios")}
+    tein["model"] = modelo
+    if qualidade:
+        tein["quality"] = qualidade
+    if "reference_images" in payload:
+        tein["reference_image"] = payload["reference_images"]
+    if "reference_audios" in payload:
+        tein["reference_audio"] = payload["reference_audios"]
+    return tein
