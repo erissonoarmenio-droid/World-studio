@@ -18,11 +18,14 @@ class _CacheR2:
     """O /saude é chamado o tempo todo; confere o R2 no máximo 1 vez por minuto."""
 
     def __init__(self) -> None:
-        self.quando = 0.0
+        # None = nunca conferiu. Não usar 0.0: o relógio monotônico conta desde que a
+        # máquina ligou; logo depois de um reinício ele está abaixo de 60 e o R2
+        # aparecia "fora" no primeiro minuto sem ser conferido.
+        self.quando: float | None = None
         self.ok = False
 
     def conferir(self) -> bool:
-        if time.monotonic() - self.quando > 60:
+        if self.quando is None or time.monotonic() - self.quando > 60:
             from app.nucleo.midia import armazenamento_midias
 
             try:
