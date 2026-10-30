@@ -2,8 +2,8 @@
 
 POST /api/v1/model/generateVideo → data.id; GET /api/v1/model/prediction/{id};
 POST /api/v1/model/uploadMedia (multipart `file`) → URL para usar como referência.
-Atenção (29/10): o Cloudflare da Atlas recusou o cliente Python padrão (erro 1010) e aceitou
-curl. Conferir com httpx no teste real da Parada B antes de ligar na fila.
+29/10: o Cloudflare da Atlas recusou o urllib (erro 1010). 30/10: httpx passa (consulta real
+de um clipe pronto, sem gasto).
 """
 
 from __future__ import annotations
