@@ -87,3 +87,11 @@ def test_referencia_citada_e_nao_enviada_bloqueia():
     with pytest.raises(PedidoBloqueado) as erro:
         NoVideo().preparar(entrada_v2("c1", audio_url=None))
     assert [f.regra_id for f in erro.value.relatorio.falhas] == ["video.referencias_no_pedido"]
+
+
+def test_voz_medida_maior_que_o_clipe_bloqueia():
+    with pytest.raises(PedidoBloqueado) as erro:
+        NoVideo().preparar(entrada_v2("c3", audio_segundos=6.4))
+    assert [f.regra_id for f in erro.value.relatorio.falhas] == ["video.audio_cabe"]
+    _, rel = NoVideo().preparar(entrada_v2("c3", audio_segundos=6.4, duracao=8))
+    assert not rel.bloqueado

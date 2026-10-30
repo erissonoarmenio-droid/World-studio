@@ -52,6 +52,7 @@ class EntradaVideo(Entrada):
     vibe: str  # [12]
     imagem_url: str | None = None  # @image1: primeiro quadro (foto da cena aprovada pelo juiz)
     audio_url: str | None = None  # @audio1: a voz já conferida
+    audio_segundos: float | None = Field(default=None, gt=0)  # duração medida da voz
 
     @field_validator("fala")
     @classmethod
@@ -127,6 +128,17 @@ REGRAS = registrar(
             origem="fórmula §5 / E11 — 29/10 (fala apertada sai corrida e trocada)",
             checar=lambda p: (
                 len(p.entrada.fala.split()) / PALAVRAS_POR_SEGUNDO <= p.entrada.duracao - 1
+            ),
+        ),
+        Regra(
+            id="video.audio_cabe",
+            nivel="bloqueia",
+            faca="A voz medida cabe no clipe com folga: duração do áudio ≤ duração − 1 s.",
+            origem="30/10 (voz D da cena 3: 12 palavras em 6,4 s = 1,9 pal/s, não 2,5; "
+            "não cabia em 6 s)",
+            checar=lambda p: (
+                p.entrada.audio_segundos is None
+                or p.entrada.audio_segundos <= p.entrada.duracao - 1
             ),
         ),
         Regra(
