@@ -5,7 +5,7 @@ Versão 0.1 — 30/out/2026. Módulo `geracao` do mapa aprovado (`docs/spec/MAPA
 Base: `aios/projects/aprendizados-processo-video.md` (erros E1–E17 e regras 0–13), `claude/formula-prompt-seedance.md` v2.2, `claude/arquitetura-estudio-ugc.md` §7 (nós), estudo do Sirio de 30/10 (check file que bloqueia antes de gerar).
 
 ## Estado em 31/10/2026 — o código manda
-**Fonte da verdade das regras:** o código em `app/geracao/nos/` e `uv run python -m app.geracao.nos.regras --listar` (vídeo 22, voz 4, foto 7, juiz 2 regras). O texto abaixo é a intenção de 30/10. Cópia deste spec no projeto W-orld: `aios/projects/spec-geracao-nos.md`.
+**Fonte da verdade das regras:** o código em `app/geracao/nos/` e `uv run python -m app.geracao.nos.regras --listar` (vídeo 25, voz 4, foto 7, juiz 2 regras em 31/10). O texto abaixo é a intenção de 30/10. Cópia deste spec no projeto W-orld: `aios/projects/spec-geracao-nos.md`.
 
 Mudou desde 30/10:
 - **Fornecedor Tein** (`fornecedores/tein.py`): `/v1/generate`, `/v1/jobs/{id}`, `/v1/uploads`, chave de idempotência, custo cobrado em `usage.cost`. Padrão do vídeo desde 31/10 (decisão de Eri); Atlas fica de reserva.
@@ -15,7 +15,12 @@ Mudou desde 30/10:
 - **Regras novas** de E18–E23: `audio_cabe`, `parada_ao_falar`, `rosto_grande_ao_falar`, `fala_sem_corte_antes`, `fala_logo_no_inicio`; juiz sem a fala esperada.
 - **Não criados:** nós `vestir` (reserva) e `lipsync` (Sync-3 reprovado, E21).
 
-A fazer (frente "vídeo de loja", `aios/projects/frente-video-loja.md`): apertar `fala_cabe` pela regra do Sirio (máx. palavras = (duração − 3) × 2,5); marcas de tempo no prompt; 2 versões + o juiz escolhe.
+**31/10 (commit ae4a74d, branch `formatos-fixos`): formatos fixos no nó de vídeo** (ficha `aios/projects/ficha-formatos.md`, aprovada por Eri):
+- campo `tipo`: `livre` (como antes: quem pede escreve objetivo, formato e batidas) ou `F-A` story de frente, `F-B` peça na mão, `F-C` provador no espelho **sem fala na tela** (voz em off na edição, E22);
+- nos formatos fixos o nó escreve objetivo, formato e batidas, com **marcas de tempo** a partir da voz medida (Sirio: 00:00–00:01 parada, fala a partir de 00:01, fim calmo);
+- regras novas: `video.palavras_sirio` (aviso: até (duração − 3) × 2,5 palavras), `video.sem_fala_declarado`, `video.fb_segura_a_peca`; as regras de fala só valem quando há fala. Quem bloqueia o tamanho da fala continua sendo a voz medida (`audio_cabe`).
+
+A fazer (frente "vídeo de loja", `aios/projects/frente-video-loja.md`): 2 versões com 2 ângulos de venda (problema-solução × prova social) + o juiz confere as duas (etapa 4).
 
 ## Suposições (corrija agora, ou sigo com elas)
 1. **Sem mudança no banco nesta parte.** Os nós são código puro, chamados pelo trabalhador da fila já existente com os tipos `foto`, `voz` e `video`. Os tipos novos (`vestir`, `lipsync`, `juiz`) entram numa migração na parte 2.
