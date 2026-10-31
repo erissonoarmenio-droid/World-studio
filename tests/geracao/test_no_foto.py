@@ -71,3 +71,23 @@ def test_influencer_menor_ou_ancora_errada_sao_recusadas():
         entrada("c2", idade=17)
     with pytest.raises(ValueError):
         entrada("c1", ancora=ANC)
+
+
+def test_corpo_novo_troca_a_trava_do_corpo():
+    from app.geracao.nos.foto import EntradaFoto, Imagem, NoFoto
+
+    im = Imagem(dados_b64="xxxxxxxxxx")
+    e = EntradaFoto(
+        influencer=im,
+        idade=25,
+        peca="She wears a white t-shirt.",
+        cenario="a boutique",
+        cena="SCENE: full body.",
+        corpo="hourglass figure, fuller bust and hips, defined waist",
+    )
+    p, rel = NoFoto().preparar(e)
+    assert "body and age" not in p.prompt and "Body: hourglass figure" in p.prompt
+    ruim = e.model_copy(update={"corpo": "sexy busty body"})
+    assert "foto.corpo_sem_sexualizar" in {
+        f.regra_id for f in NoFoto().checar(NoFoto().montar_pedido(ruim)).falhas
+    }

@@ -36,6 +36,9 @@ class EntradaFoto(Entrada):
     influencer: Imagem  # Image 1: referência de identidade
     idade: int = Field(ge=21, le=60)  # influencer sempre adulta (criar-influencer: 25+)
     aparencia: str = ""  # ex.: "dark wavy shoulder-length" (cabelo), da ficha da influencer
+    # Biótipo da ficha da influencer (31/10, Eri: "violão marcado"). Quando preenchido, o corpo
+    # vem deste texto e não da imagem 1 (a referência antiga tem outro corpo).
+    corpo: str = ""
     peca: str  # "She wears ..." (ficha da peça)
     cenario: str  # "a small, cozy Brazilian clothing boutique"
     cena: str  # "SCENE: ..." (formato F1–F12 do diretor-foto)
@@ -125,6 +128,18 @@ REGRAS = registrar(
             checar=_espelho_ok,
         ),
         Regra(
+            id="foto.corpo_sem_sexualizar",
+            nivel="bloqueia",
+            faca="Biótipo descrito de forma natural e de moda; NUNCA termos sexuais ou de nudez.",
+            origem="31/10 (corpo novo da influencer) / limites do estúdio: sem conteúdo adulto",
+            checar=lambda p: (
+                not any(
+                    w in p.entrada.corpo.lower()
+                    for w in ("sexy", "nude", "naked", "cleavage", "lingerie", "busty", "seductive")
+                )
+            ),
+        ),
+        Regra(
             id="foto.sem_texto",
             nivel="bloqueia",
             faca='Sempre "no text, no logos".',
@@ -141,9 +156,14 @@ class NoFoto(No):
 
     def montar_pedido(self, entrada: EntradaFoto, fornecedor: str = "google") -> Pedido:
         cabelo = f"hair ({entrada.aparencia})" if entrada.aparencia else "hair"
+        if entrada.corpo:
+            corpo = entrada.corpo.strip().rstrip(".")
+            mantem = f"Keep her exact face, skin, {cabelo} and age. Body: {corpo}."
+        else:
+            mantem = f"Keep her exact face, skin, {cabelo}, body and age."
         base = (
-            f"Image 1 = the woman (identity reference). Keep her exact face, skin, {cabelo}, "
-            f"body and age. {REALISMO} {entrada.peca.strip()} "
+            f"Image 1 = the woman (identity reference). {mantem} "
+            f"{REALISMO} {entrada.peca.strip()} "
             f"Setting: {entrada.cenario.strip().rstrip('.')}."
         )
         ancora = ANCORA if entrada.ancora is not None else ""
