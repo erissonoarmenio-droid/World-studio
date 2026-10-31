@@ -4,6 +4,19 @@ Versão 0.1 — 30/out/2026. Módulo `geracao` do mapa aprovado (`docs/spec/MAPA
 
 Base: `aios/projects/aprendizados-processo-video.md` (erros E1–E17 e regras 0–13), `claude/formula-prompt-seedance.md` v2.2, `claude/arquitetura-estudio-ugc.md` §7 (nós), estudo do Sirio de 30/10 (check file que bloqueia antes de gerar).
 
+## Estado em 31/10/2026 — o código manda
+**Fonte da verdade das regras:** o código em `app/geracao/nos/` e `uv run python -m app.geracao.nos.regras --listar` (vídeo 22, voz 4, foto 7, juiz 2 regras). O texto abaixo é a intenção de 30/10. Cópia deste spec no projeto W-orld: `aios/projects/spec-geracao-nos.md`.
+
+Mudou desde 30/10:
+- **Fornecedor Tein** (`fornecedores/tein.py`): `/v1/generate`, `/v1/jobs/{id}`, `/v1/uploads`, chave de idempotência, custo cobrado em `usage.cost`. Padrão do vídeo desde 31/10 (decisão de Eri); Atlas fica de reserva.
+- **Envio único** (`nos/envio.py`): aprovação com custo máximo; o registro marca o pedido antes da chamada; erro 5xx ou tempo esgotado = "incerto" e **não reenvia**; erro 4xx libera.
+- **Seedance 2.5 em rascunho** (480p → termina em 1080p) e resolução 720p no 2.0 fast.
+- **Foto com a sala real da loja** (`cenario_foto`, Image 3): libera espelhos reais da loja (E7 não se aplica).
+- **Regras novas** de E18–E23: `audio_cabe`, `parada_ao_falar`, `rosto_grande_ao_falar`, `fala_sem_corte_antes`, `fala_logo_no_inicio`; juiz sem a fala esperada.
+- **Não criados:** nós `vestir` (reserva) e `lipsync` (Sync-3 reprovado, E21).
+
+A fazer (frente "vídeo de loja", `aios/projects/frente-video-loja.md`): apertar `fala_cabe` pela regra do Sirio (máx. palavras = (duração − 3) × 2,5); marcas de tempo no prompt; 2 versões + o juiz escolhe.
+
 ## Suposições (corrija agora, ou sigo com elas)
 1. **Sem mudança no banco nesta parte.** Os nós são código puro, chamados pelo trabalhador da fila já existente com os tipos `foto`, `voz` e `video`. Os tipos novos (`vestir`, `lipsync`, `juiz`) entram numa migração na parte 2.
 2. **Cliente HTTP `httpx`** (dependência nova — precisa do seu ok). Ele se identifica como `world-estudio/<versão>`; com isso a Atlas não barra o pedido (E10) sem disfarçar nada.
