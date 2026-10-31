@@ -10,6 +10,7 @@ celular, áudio e anti-defeitos (fixo) · [12] vibe.
 
 from __future__ import annotations
 
+import math
 import re
 from decimal import Decimal
 from typing import Literal
@@ -57,6 +58,39 @@ FIM = (
     "Sound direct from the phone mic, ambient room tone, no music. "
     "Plain objects, no text, no logos. Exactly two arms, five fingers per hand."
 )
+REFERENCIAS_SEM_VOZ = (
+    "@image1 is the first frame and the identity reference: keep this exact woman, "
+    "her face, age and hair."
+)
+SEM_FALA = "She does not speak; her lips stay relaxed and closed."
+
+# Formatos fixos (ficha aios/projects/ficha-formatos.md, aprovada por Eri em 31/10).
+# F-A story de frente (tomada única aprovada 2 de 2 em 30/10) · F-B peça na mão ·
+# F-C provador no espelho, sem fala na tela (voz em off na edição, por causa do E22).
+Tipo = Literal["livre", "F-A", "F-B", "F-C"]
+OBJETIVO = {
+    "F-A": "Create a talking clip from @image1.",
+    "F-B": "Create a talking clip from @image1 where she shows the garment she holds.",
+    "F-C": "Create a silent try-on clip from @image1.",
+}
+FORMATO_FALA = (
+    "{d} seconds UGC style story, filmed on smartphone, {luz}, phone propped at chest height "
+    "facing her, framing from the chest up, her face large in the frame{extra}; the propped "
+    "phone wobbles slightly."
+)
+FORMATO_ESPELHO = (
+    "{d} seconds UGC style try-on video, filmed on smartphone, {luz}, mirror selfie: she holds "
+    "a plain phone (plain case, no logos) at chest height off to one side; ONE single mirror, "
+    "only one mirror in the frame; her outfit is visible from head to knees in the reflection; "
+    "slight handheld micro-movement."
+)
+LUZ_PADRAO = "soft store ceiling light"
+
+
+def _tempo(segundos: int) -> str:
+    return f"00:{segundos:02d}"
+
+
 PROIBIDAS = ("cinematic", "professional", "stunning", "8k", "studio", "perfect", "epic", "premium")
 PISTAS_RITMO = ("never rush", "unhurried", "pause", "breath", "between steps")
 
@@ -64,15 +98,21 @@ PISTAS_RITMO = ("never rush", "unhurried", "pause", "breath", "between steps")
 class EntradaVideo(Entrada):
     """O que muda de um clipe para outro. A fala vem do roteiro, idêntica."""
 
-    fala: str = Field(min_length=2, max_length=300)
+    fala: str | None = Field(default=None, min_length=2, max_length=300)  # None só no F-C
     duracao: int = Field(ge=4, le=15)
-    objetivo: str  # [1] "Create a talking selfie clip from @image1."
-    formato: str  # [3–4] duração, celular, luz, enquadramento
     cenario: str  # [5]
     peca: str  # [6] descrição da peça (do Analista de Peças), "unchanged in every shot"
-    batidas: str  # [7] com {fala} no lugar exato da fala
     tom: str  # [8]
     vibe: str  # [12]
+    # "livre": quem pede escreve objetivo, formato e batidas (como até 30/10).
+    # F-A/F-B/F-C: o nó escreve esses blocos sozinho, com marcas de tempo (Sirio).
+    tipo: Tipo = "livre"
+    objetivo: str | None = None  # [1] "Create a talking selfie clip from @image1."
+    formato: str | None = None  # [3–4] duração, celular, luz, enquadramento
+    batidas: str | None = None  # [7] com {fala} no lugar exato da fala
+    luz: str = LUZ_PADRAO  # formatos fixos: luz do lugar
+    gesto: str = ""  # F-A/F-B: gesto pequeno da pose, logo depois da fala (frase completa)
+    acoes: str | None = None  # F-C: as poses em sequência ("one hand on her waist, then ...")
     imagem_url: str | None = None  # @image1: primeiro quadro (foto da cena aprovada pelo juiz)
     audio_url: str | None = None  # @audio1: a voz já conferida
     audio_segundos: float | None = Field(default=None, gt=0)  # duração medida da voz
@@ -83,15 +123,31 @@ class EntradaVideo(Entrada):
 
     @field_validator("fala")
     @classmethod
-    def _fala_sem_aspas(cls, v: str) -> str:
+    def _fala_sem_aspas(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         v = normalizar_texto(v)
         if '"' in v:
             raise ValueError("a fala não pode ter aspas: elas marcam a fala no prompt")
         return v
 
     @model_validator(mode="after")
-    def _uma_marca_de_fala(self) -> EntradaVideo:
-        if self.batidas.count(MARCA_FALA) != 1:
+    def _coerente_com_o_tipo(self) -> EntradaVideo:
+        if self.tipo == "livre":
+            if not (self.objetivo and self.formato and self.batidas and self.fala):
+                raise ValueError("tipo livre precisa de fala, objetivo, formato e batidas")
+        elif self.objetivo or self.formato or self.batidas:
+            raise ValueError("formato fixo: objetivo, formato e batidas são escritos pelo nó")
+        if self.tipo == "F-C":
+            if self.fala or self.audio_url or self.audio_segundos:
+                raise ValueError("F-C não tem fala na tela nem @audio (a voz entra em off)")
+            if not self.acoes:
+                raise ValueError("F-C precisa das ações (poses) em sequência")
+        elif not self.fala:
+            raise ValueError("este formato precisa da fala")
+        if self.tipo in ("F-A", "F-B") and self.audio_segundos is None:
+            raise ValueError("formato fixo com fala: mandar a duração medida da voz")
+        if self.tipo == "livre" and self.batidas.count(MARCA_FALA) != 1:
             raise ValueError("as batidas precisam ter {fala} exatamente uma vez")
         return self
 
@@ -104,14 +160,50 @@ def _palavras(texto: str) -> int:
     return len([w for w in texto.split() if w != "—"])
 
 
+def _tem_fala(p: Pedido) -> bool:
+    return p.entrada.fala is not None
+
+
+def _batidas(p: Pedido) -> str:
+    """As batidas que foram para o prompt (escritas por quem pede ou pelo formato fixo)."""
+    return _blocos(p.entrada)[1]
+
+
 def _antes_da_fala(p: Pedido) -> str:
-    return p.entrada.batidas.split(MARCA_FALA)[0].lower()
+    return _batidas(p).split(MARCA_FALA)[0].lower()
 
 
 def _frase_da_fala(p: Pedido) -> str:
     """O trecho das batidas onde a fala acontece (da frase que a contém até a fala)."""
-    antes = p.entrada.batidas.split(MARCA_FALA)[0]
+    antes = _batidas(p).split(MARCA_FALA)[0]
     return re.split(r"[.!?]\s|—", antes)[-1].lower()
+
+
+def _blocos(e: EntradaVideo) -> tuple[str, str, str]:
+    """(objetivo, batidas, formato) — do pedido livre ou montados pelo formato fixo."""
+    if e.tipo == "livre":
+        return e.objetivo, e.batidas, e.formato
+    d = e.duracao
+    if e.tipo == "F-C":
+        formato = FORMATO_ESPELHO.format(d=d, luz=e.luz.strip().rstrip("."))
+        batidas = (
+            f"{SEM_FALA} {_tempo(0)}–{_tempo(d - 1)} {e.acoes.strip().rstrip('.')}. "
+            f"{_tempo(d - 1)}–{_tempo(d)} final shot — she smiles at her reflection and holds "
+            "the pose for the final second."
+        )
+        return OBJETIVO["F-C"], batidas, formato
+    extra = "; the garment she holds fills the lower part of the frame" if e.tipo == "F-B" else ""
+    formato = FORMATO_FALA.format(d=d, luz=e.luz.strip().rstrip("."), extra=extra)
+    # Sirio: silêncio 00:00–00:01, fala a partir de 00:01, fim calmo; a voz medida decide.
+    fim = min(d - 1, math.ceil(1 + e.audio_segundos))
+    gesto = f" {e.gesto.strip()}" if e.gesto.strip() else ""
+    batidas = (
+        f"{_tempo(0)}–{_tempo(1)} she stands still, facing the camera, head steady. "
+        f"{_tempo(1)}–{_tempo(fim)} she says in Brazilian Portuguese: {MARCA_FALA}{gesto} "
+        f"{_tempo(fim)}–{_tempo(d)} final shot — silent, she smiles and holds the pose for "
+        "the final second."
+    )
+    return OBJETIVO[e.tipo], batidas, formato
 
 
 def _enquadramento_possivel(p: Pedido) -> bool:
@@ -127,7 +219,9 @@ REGRAS = registrar(
             nivel="bloqueia",
             faca="A fala do roteiro vai entre aspas no prompt, idêntica ao roteiro, uma vez só.",
             origem="E11 — 29/10 (Seedance trocou as palavras em 4 de 5 clipes)",
-            checar=lambda p: re.findall(r'"([^"]+)"', _texto(p)) == [p.entrada.fala],
+            checar=lambda p: (
+                re.findall(r'"([^"]+)"', _texto(p)) == ([p.entrada.fala] if _tem_fala(p) else [])
+            ),
         ),
         Regra(
             id="video.audio_so_tom",
@@ -135,7 +229,7 @@ REGRAS = registrar(
             faca='O @audio1 serve só para tom e ritmo: "match the tone and pacing of @audio1, '
             'not its words".',
             origem="E11 — 29/10 (o Seedance refaz a voz do áudio, nunca repassa as palavras)",
-            checar=lambda p: "not its words" in _texto(p).lower(),
+            checar=lambda p: not _tem_fala(p) or "not its words" in _texto(p).lower(),
         ),
         Regra(
             id="video.papeis_das_referencias",
@@ -143,7 +237,8 @@ REGRAS = registrar(
             faca='Cada referência diz o seu papel: "@image1 is ..." e "@audio1 is ...".',
             origem="E11 — 29/10 / fórmula §3 bloco 2",
             checar=lambda p: (
-                "@image1 is" in _texto(p).lower() and "@audio1 is" in _texto(p).lower()
+                "@image1 is" in _texto(p).lower()
+                and (not _tem_fala(p) or "@audio1 is" in _texto(p).lower())
             ),
         ),
         Regra(
@@ -166,7 +261,8 @@ REGRAS = registrar(
             faca="A fala cabe no clipe lida sem pressa: palavras / 2,5 ≤ duração − 1 s.",
             origem="fórmula §5 / E11 — 29/10 (fala apertada sai corrida e trocada)",
             checar=lambda p: (
-                len(p.entrada.fala.split()) / PALAVRAS_POR_SEGUNDO <= p.entrada.duracao - 1
+                not _tem_fala(p)
+                or len(p.entrada.fala.split()) / PALAVRAS_POR_SEGUNDO <= p.entrada.duracao - 1
             ),
         ),
         Regra(
@@ -187,7 +283,7 @@ REGRAS = registrar(
             "aproximar na frase da fala; a ação vai antes ou depois, em silêncio.",
             origem="E22 — 30/10 (rosto oscila na virada da cena 3 e na caminhada da cena 4; "
             "boca estranha; Eri: 'os lábios não estão legais')",
-            checar=lambda p: not any(m in _frase_da_fala(p) for m in MOVIMENTO),
+            checar=lambda p: not _tem_fala(p) or not any(m in _frase_da_fala(p) for m in MOVIMENTO),
         ),
         Regra(
             id="video.fala_sem_corte_antes",
@@ -196,14 +292,14 @@ REGRAS = registrar(
             "clipes separados, juntados na edição.",
             origem="E23 — 30/10 (cenas 3 e 4 na Tein: a voz começou durante a ação, boca fechada "
             "falando; corte virou fusão no fim; boca 3–4)",
-            checar=lambda p: "jump cut" not in _antes_da_fala(p),
+            checar=lambda p: not _tem_fala(p) or "jump cut" not in _antes_da_fala(p),
         ),
         Regra(
             id="video.fala_logo_no_inicio",
             nivel="aviso",
             faca="A fala começa logo no início; ação longa em silêncio antes dela desalinha a voz.",
             origem="E23 — 30/10 (na cena 2, 1 s de mãos em silêncio funcionou: boca 7)",
-            checar=lambda p: "silent" not in _antes_da_fala(p),
+            checar=lambda p: not _tem_fala(p) or "silent" not in _antes_da_fala(p),
         ),
         Regra(
             id="video.rosto_grande_ao_falar",
@@ -211,7 +307,10 @@ REGRAS = registrar(
             faca='Cena com fala do peito para cima ("chest up" / "close-up"): rosto grande '
             "no quadro.",
             origem="E22 — 30/10 (rosto com 61–116 px, 12–23% da largura, em 480p: boca mole)",
-            checar=lambda p: any(k in p.entrada.formato.lower() for k in ENQUADRAMENTO_FALA),
+            checar=lambda p: (
+                not _tem_fala(p)
+                or any(k in _blocos(p.entrada)[2].lower() for k in ENQUADRAMENTO_FALA)
+            ),
         ),
         Regra(
             id="video.enquadramento_possivel",
@@ -220,6 +319,40 @@ REGRAS = registrar(
             "(câmera na mão não enquadra isso).",
             origem="checker item 18 — 21/10",
             checar=_enquadramento_possivel,
+        ),
+        Regra(
+            id="video.palavras_sirio",
+            nivel="aviso",
+            faca="Meta do roteiro (Sirio): até (duração − 3) × 2,5 palavras (12 s = 22).",
+            origem="repositório Seedance-2.0-AI-UGC do Sirio, lido em 31/10 (fala de 00:01 até "
+            "2 s antes do fim); quem bloqueia é a voz medida (video.audio_cabe)",
+            checar=lambda p: (
+                not _tem_fala(p)
+                or len(p.entrada.fala.split()) <= (p.entrada.duracao - 3) * PALAVRAS_POR_SEGUNDO
+            ),
+        ),
+        Regra(
+            id="video.sem_fala_declarado",
+            nivel="bloqueia",
+            faca='Clipe sem fala na tela (F-C) diz "She does not speak" e não cita @audio1 nem '
+            "fala entre aspas.",
+            origem="ficha dos formatos 31/10 / E22 (rosto pequeno no espelho + fala = boca ruim; "
+            "a voz entra em off na edição)",
+            checar=lambda p: (
+                _tem_fala(p)
+                or (
+                    SEM_FALA in _texto(p)
+                    and "@audio1" not in _texto(p).lower()
+                    and '"' not in _texto(p)
+                )
+            ),
+        ),
+        Regra(
+            id="video.fb_segura_a_peca",
+            nivel="bloqueia",
+            faca='F-B: a peça é descrita como segurada por ela ("She holds ...").',
+            origem="ficha dos formatos 31/10 (F-B mostra a peça na mão, não vestida)",
+            checar=lambda p: p.entrada.tipo != "F-B" or "holds" in p.entrada.peca.lower(),
         ),
         Regra(
             id="video.referencias_no_pedido",
@@ -308,11 +441,13 @@ class NoVideo(No):
     regras = REGRAS
 
     def montar_pedido(self, entrada: EntradaVideo) -> Pedido:
-        batidas = entrada.batidas.replace(MARCA_FALA, f'"{entrada.fala}"')
+        objetivo, batidas, formato = _blocos(entrada)
+        if entrada.fala is not None:
+            batidas = batidas.replace(MARCA_FALA, f'"{entrada.fala}"')
         blocos = [
-            entrada.objetivo,
-            REFERENCIAS,
-            entrada.formato,
+            objetivo,
+            REFERENCIAS if entrada.fala is not None else REFERENCIAS_SEM_VOZ,
+            formato,
             entrada.cenario,
             entrada.peca,
             batidas,
