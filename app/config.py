@@ -31,6 +31,7 @@ class Config(BaseSettings):
     google_api_key: SecretStr | None = None  # foto (Nano Banana), voz (TTS) e juiz
     atlas_api_key: SecretStr | None = None  # vídeo (Seedance) e lipsync
     decart_api_key: SecretStr | None = None  # vestir a peça no vídeo (reserva)
+    anthropic_api_key: SecretStr | None = None  # diretor (conversa → roteiro do vídeo)
 
     @property
     def r2_configurado(self) -> bool:
@@ -45,6 +46,7 @@ class Config(BaseSettings):
         "google_api_key",
         "atlas_api_key",
         "decart_api_key",
+        "anthropic_api_key",
         mode="before",
     )
     @classmethod
