@@ -23,7 +23,7 @@ def _video(angulo: str) -> dict:
             {"inicio": 0, "fim": 5, "acao": "Starts mid-movement: she walks two steps toward "
              "the camera holding the shirt and says:", "fala": "Gente, olha isso, chegou hoje."},
             {"inicio": 5, "fim": 10, "enquadramento": "Slightly closer", "acao": "She turns "
-             "sideways and holds the shirt against her torso:", "fala": "Ó, linho, tipo."},
+             "sideways and holds the shirt against her torso:", "fala": "Linho, ó, tipo."},
             {"inicio": 10, "fim": 16, "enquadramento": "Chest-up", "acao": "She leans toward "
              "the lens and says:", "fala": "Me chama no direct, tá?"},
         ],
@@ -90,3 +90,27 @@ def test_json_quebrado_pede_correcao():
     d = DiretorUGC(cerebro).dirigir("x", "camisa", "https://x/q.jpg")
     assert d.tentativas == 2
     assert json.loads(json.dumps(d.mensagem_para_lojista))
+
+
+def test_encaixar_tempos_pela_fala_medida():
+    """Caso real do sofá (01/11): falas de 4,68 / 3,79 / 2,19 / 1,57 s em planos de 15 s."""
+    from app.geracao.diretor_ugc import encaixar_tempos
+
+    planos = [
+        {"inicio": 0, "fim": 4.5}, {"inicio": 4.5, "fim": 8.5},
+        {"inicio": 8.5, "fim": 12}, {"inicio": 12, "fim": 15},
+    ]  # fmt: skip
+    novos, duracao = encaixar_tempos(planos, [4.68, 3.79, 2.19, 1.57])
+    assert duracao == 16
+    assert novos[0]["inicio"] == 0 and novos[-1]["fim"] == 16
+    for p, d in zip(novos, [4.68, 3.79, 2.19, 1.57], strict=True):
+        assert p["fim"] - p["inicio"] >= 0.3 + d + 0.6 - 0.05
+    assert all(a["fim"] == b["inicio"] for a, b in zip(novos, novos[1:], strict=False))
+
+
+def test_fala_que_nao_cabe_em_16s_avisa():
+    from app.geracao.diretor_ugc import FalaNaoCabe, encaixar_tempos
+
+    planos = [{"inicio": 0, "fim": 5}, {"inicio": 5, "fim": 10}, {"inicio": 10, "fim": 15}]
+    with pytest.raises(FalaNaoCabe):
+        encaixar_tempos(planos, [6.0, 6.0, 5.0])

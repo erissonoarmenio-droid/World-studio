@@ -70,6 +70,8 @@ PROPAGANDA = (
     "corre que",
     "promoção imperdível",
 )
+# Palavra curta logo depois do corte é engolida (E33, 01/11: o "Ó" sumiu 3 de 3 vezes).
+FRACAS_NO_INICIO = ("ó", "o", "é", "e", "ai", "ah", "oh", "né", "tá", "a", "ué", "hm", "hmm")
 MULETAS = ("gente", "olha", "ó", "tipo", "né", "sério", "ai,", "pera", "hmm")
 
 LUZ_PADRAO = "Soft daylight from a window on the left mixed with the store's ceiling downlights"
@@ -268,6 +270,17 @@ def _tempos_ok(p: Pedido) -> bool:
     return all(abs(a.fim - b.inicio) < 0.05 for a, b in zip(pl, pl[1:], strict=False))
 
 
+def _primeira_palavra(fala: str) -> str:
+    m = re.match(r"[\s.…,!?\-]*([\wÀ-ÿ]+)", fala)
+    return m.group(1).lower() if m else ""
+
+
+def _fala_comeca_forte(p: Pedido) -> bool:
+    return all(
+        _primeira_palavra(pl.fala) not in FRACAS_NO_INICIO for pl in _e(p).planos[1:] if pl.fala
+    )
+
+
 def _corpo_vivo(p: Pedido) -> bool:
     return CORPO_VIVO in p.prompt and all(
         any(v in pl.acao.lower() for v in ACOES_DE_CORPO) for pl in _e(p).planos
@@ -347,6 +360,14 @@ REGRAS = registrar(
             faca="Vídeo UGC falado: pelo menos um plano com fala.",
             origem="Método W-orld v3 (formato falado; sem fala usar o nó antigo F-C)",
             checar=lambda p: bool(_falas(p)),
+        ),
+        Regra(
+            id="ugc.fala_comeca_forte",
+            nivel="bloqueia",
+            faca="Depois de um corte, a fala NÃO começa com palavra curta (ó, é, e, ai, né, tá…): "
+            "comece com palavra cheia e use a muleta no meio da frase.",
+            origem='E33 — 01/11 (o "Ó" depois do corte sumiu 3 de 3 vezes: v3 e os 2 do sofá)',
+            checar=_fala_comeca_forte,
         ),
         Regra(
             id="ugc.palavras_cabem",

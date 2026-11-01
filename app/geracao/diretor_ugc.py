@@ -50,6 +50,9 @@ REGRAS (o sistema bloqueia se quebrar):
    corre que acaba, você precisa, obcecada, game changer, melhor do mundo).
    "depois" (opcional) em inglês: reação depois da fala; pode citar entre aspas UMA palavra
    que está na fala (ex.: Small shrug on "sério").
+   Do 2º plano em diante, a fala NUNCA começa com palavra curta (ó, é, e, ai, ah, né, tá):
+   o vídeo corta ali e a 1ª sílaba some. Comece com palavra cheia e ponha a muleta no meio
+   ("Isso aqui é linho, ó, tipo..." e não "Ó, isso aqui é linho").
 5. Total de palavras faladas até (duração − 2) × 2,5. Deixe respiros.
 6. Quem filma é uma AMIGA com o celular na mão (a câmera é fixa no sistema): no "contexto"
    NUNCA diga que ela segura o celular ou filma a si mesma.
@@ -86,7 +89,7 @@ turning to the lens. She takes a small breath, laughs softly through her nose an
 lift on \\"separei\\"; her free hand points at herself on \\"pra mim\\"."},
 {"inicio":5,"fim":8.4,"enquadramento":"Slightly closer","acao":"She turns her body sideways
 to the camera and holds the shirt up against her torso, swaying her hips a little as she
-looks down at it:","fala":"Ó, isso aqui é linho, tipo...","depois":""},
+looks down at it:","fala":"Isso aqui é linho, ó, tipo...","depois":""},
 {"inicio":8.4,"fim":11.7,"enquadramento":"Slightly wider","acao":"She steps half a step
 forward and pushes the shirt toward the lens, rubbing the fabric between two fingers, then
 lifts the pointed collar and lets it fall:","fala":"...sente a textura. E não esquenta nada,
@@ -201,3 +204,39 @@ class DiretorUGC:
         if falhas:
             raise DirecaoFalhou(falhas)
         return Direcao(dados.get("mensagem_para_lojista", ""), videos, 2)
+
+
+class FalaNaoCabe(Exception):
+    """As falas medidas não cabem em 16 s: o diretor precisa encurtar o roteiro."""
+
+
+def encaixar_tempos(
+    planos: list[dict[str, Any]],
+    duracoes_fala: list[float],
+    antes: float = 0.3,
+    depois: float = 0.6,
+    maximo: float = 16.0,
+) -> tuple[list[dict[str, Any]], float]:
+    """E32 (01/11): o diretor chuta tempos curtos demais (3 de 8 falas não cabiam).
+
+    Com a duração MEDIDA de cada fala (trilha de voz), cada plano dura pelo menos
+    `antes + fala + depois`; sobra de tempo é dividida entre os planos. Devolve os planos com
+    os tempos novos e a duração total (arredondada para cima, mínimo 4 s)."""
+    if len(planos) != len(duracoes_fala):
+        raise ValueError("uma duração de fala por plano (0 para plano sem fala)")
+    minimos = [
+        (antes + d + depois) if d else max(float(p["fim"]) - float(p["inicio"]), 1.5)
+        for p, d in zip(planos, duracoes_fala, strict=True)
+    ]
+    total = sum(minimos)
+    if total > maximo:
+        raise FalaNaoCabe(f"as falas pedem {total:.1f} s; o máximo é {maximo:.0f} s")
+    duracao = min(maximo, max(4.0, float(int(total) + (total % 1 > 0))))
+    extra = (duracao - total) / len(planos)
+    novos, t = [], 0.0
+    for p, m in zip(planos, minimos, strict=True):
+        fim = round(t + m + extra, 1)
+        novos.append({**p, "inicio": round(t, 1), "fim": fim})
+        t = fim
+    novos[-1]["fim"] = duracao
+    return novos, duracao

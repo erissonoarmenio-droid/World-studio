@@ -15,7 +15,7 @@ IMG = "https://exemplo/q4_1.jpg"
 AUD = "https://exemplo/trilha.mp3"
 
 
-def _v3(**mudar) -> EntradaUGC:
+def _v3(original: bool = False, **mudar) -> EntradaUGC:
     dados = dict(
         duracao=16,
         peca_nome="shirt",
@@ -40,7 +40,9 @@ def _v3(**mudar) -> EntradaUGC:
                 enquadramento="Slightly closer",
                 acao="She turns her body sideways to the camera and holds the shirt up against "
                 "her torso, swaying her hips a little as she looks down at it:",
-                fala="Ó, isso aqui é linho, tipo...",
+                fala="Ó, isso aqui é linho, tipo..."
+                if original
+                else "Isso aqui é linho, ó, tipo...",
             ),
             Plano(
                 inicio=8.4,
@@ -74,10 +76,25 @@ def _ids(relatorio) -> set[str]:
 
 
 def test_caso_de_ouro_reproduz_o_v3_aprovado():
-    pedido, relatorio = NoVideoUGC().preparar(_v3())
+    no = NoVideoUGC()
+    pedido = no.montar_pedido(_v3(original=True))
     esperado = (CASOS / "prompt_v3.txt").read_text(encoding="utf-8").strip()
     assert pedido.prompt == esperado
+    # o v3 tinha "Ó, isso aqui..." depois do corte: o "Ó" sumiu (E33) — hoje a regra barra
+    assert _ids(no.checar(pedido)) == {"ugc.fala_comeca_forte"}
+
+
+def test_v3_com_a_fala_corrigida_passa_limpo():
+    _, relatorio = NoVideoUGC().preparar(_v3())
     assert relatorio.falhas == []
+
+
+def test_palavra_curta_depois_do_corte_bloqueia():
+    planos = list(_v3().planos)
+    planos[2] = planos[2].model_copy(update={"fala": "É leve, fica fresquinho."})
+    with pytest.raises(PedidoBloqueado) as erro:
+        NoVideoUGC().preparar(_v3(planos=planos))
+    assert "ugc.fala_comeca_forte" in _ids(erro.value.relatorio)
 
 
 def test_payload_tein_e_custo():
