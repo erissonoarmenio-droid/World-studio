@@ -1,0 +1,27 @@
+Rear smartphone camera held by a friend standing about 1.5–2 metres away, approximately 26mm-equivalent main lens, 30fps, realistic ~1/60 shutter motion blur. Soft daylight from a window on the left mixed with the store's ceiling downlights, uneven light on her face, neutral natural colour, realistic smartphone exposure with small automatic white-balance and exposure corrections. Photorealistic live-action, raw smartphone realism. Visible pores, peach fuzz, natural under-eye texture, a little natural shine on the forehead and nose, tiny skin imperfections. No plastic skin, no beauty filter, no retouch, no artificial HDR, no oversharpening, no cinematic colour grade. Brazilian Portuguese. 16s, vertical 9:16.
+
+Scene context: a young woman who works at a small clothing boutique casually shows a shirt that just arrived, talking to a friend who is filming her for the shop's Instagram story. It must feel like a real, slightly messy story, not a fashion commercial.
+
+@image1 — THE WOMAN AND THE SHIRT. First frame. Preserve her exact identity, face, hair, apparent age, skin tone and curvy body proportions, and the exact light orange linen shirt (short sleeves, pointed collar, tone-on-tone buttons, matte linen, no pocket) in every cut. The store room stays as in @image1.
+@audio1 — HER VOICE. Reference @audio1 as the exact voice, pacing, breathing and emotional delivery, including the small laughs. Her mouth follows @audio1 exactly.
+
+CAMERA — not selfie footage; she never touches the camera. The unseen friend films handheld and is slightly moving: clear breathing bob, small walking sway, slight roll, constant fine micro-jitter, instinctive reframing, occasional autofocus hunt and exposure breathing. Never gimbal-smooth, never static. The friend is never visible or heard.
+
+EDITING — three casual HARD JUMP CUTS, instantaneous: slightly closer, then slightly wider, then chest-up. No extreme close-up. Never morph or glide between setups.
+
+ACTION, TIMED (spoken lines exactly as in @audio1). Her whole body is alive in every shot: she shifts her weight from one leg to the other, her shoulders stay loose, she sways lightly, her free hand tucks hair behind her ear or adjusts a sleeve, and her head moves with the sentence. Each shot has one clear full-body action. She is never planted still.
+0.0–5.0s Starts mid-movement: she walks two steps toward the camera from the clothing rack, holding the shirt on its wooden hanger, already turning to the lens. She takes a small breath, laughs softly through her nose and says: "Gente, olha isso... chegou hoje e eu já separei uma pra mim." Eyebrows lift on "separei"; her free hand points at herself on "pra mim".
+HARD CUT.
+5.0–8.4s Slightly closer. She turns her body sideways to the camera and holds the shirt up against her torso, swaying her hips a little as she looks down at it: "Ó, isso aqui é linho, tipo..."
+HARD CUT.
+8.4–11.7s Slightly wider. She steps half a step forward and pushes the shirt toward the lens, rubbing the fabric between two fingers, then lifts the pointed collar and lets it fall: "...sente a textura. E não esquenta nada, sério." Small shrug with both shoulders on "sério", weight shifting to the other leg.
+HARD CUT.
+11.7–16.0s Chest-up. She tosses the hanger over her shoulder, leans slightly toward the lens with her head tilted and says, relaxed: "Quer ver ela vestida? Me chama no direct." A short light chuckle, then she starts to turn away toward the rack with a lopsided smile and a glance back.
+
+ACTING: natural, warm, lightly amused, like talking to a friend. She breathes before speaking; uneven blinking; her eyes move every 2–3 seconds between the shirt, the lens and the room, never staring at the lens for more than 2 seconds; tiny head tilts; active eyebrows; asymmetric smile; small thinking pauses. She does not smile constantly. Hands and body move naturally with what she says, like a real person who talks with her body. No presenter delivery, no influencer excitement, no fixed stare.
+
+ONLY she speaks and ONLY the lines above, in Brazilian Portuguese, exactly as in @audio1. No extra words, ad-libs, voiceover or off-screen speech. Mouth relaxed and closed when not speaking.
+
+SFX — realistic phone microphone, quiet store room tone, soft fabric rustle, wooden hanger click, faint street ambience. No music.
+
+STRICT NEGATIVES: no glossy commercial look, no studio key light, no ring-light catchlights, no skin smoothing. The shirt never changes colour, collar, buttons or fabric; no pocket appears. Exactly two arms, five fingers per hand, no fused fingers. No overacting, no giant smile, no repetitive nods. Never frozen or standing still like a mannequin. No frozen avatar pauses, no fixed stare. No identity or body drift between cuts. No morphing between cuts. No gimbal, dolly or artificial shallow focus. No text, subtitles, logos or UI.
