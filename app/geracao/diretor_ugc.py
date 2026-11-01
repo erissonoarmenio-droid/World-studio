@@ -51,7 +51,10 @@ REGRAS (o sistema bloqueia se quebrar):
    "depois" (opcional) em inglês: reação depois da fala; pode citar entre aspas UMA palavra
    que está na fala (ex.: Small shrug on "sério").
 5. Total de palavras faladas até (duração − 2) × 2,5. Deixe respiros.
-6. Descreva a peça em inglês com cor, tecido e detalhes que não podem mudar (gola, botões,
+6. Quem filma é uma AMIGA com o celular na mão (a câmera é fixa no sistema): no "contexto"
+   NUNCA diga que ela segura o celular ou filma a si mesma.
+7. Use os móveis que existem no local (se a foto mostra poltrona, é "armchair", não "sofa").
+8. Descreva a peça em inglês com cor, tecido e detalhes que não podem mudar (gola, botões,
    bolsos, mangas). "peca_nunca" lista o que nunca muda (ex.: "colour, collar, buttons or
    fabric; no pocket appears").
 

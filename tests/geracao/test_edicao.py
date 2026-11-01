@@ -45,3 +45,14 @@ def test_tratamento_levanta_os_agudos(tmp_path: Path):
     antes = _rms_na_faixa(bruto, 4500, 3000) - _rms_na_faixa(bruto, 650, 700)
     depois = _rms_na_faixa(tratado, 4500, 3000) - _rms_na_faixa(tratado, 650, 700)
     assert depois > antes + 2  # agudos sobem em relação aos médios (no v3 real: +5 dB)
+
+
+def test_legenda_em_blocos_de_ate_tres_palavras_quebrando_na_pontuacao():
+    from app.geracao.edicao import gerar_ass
+
+    palavras = [("Gente,", 0.3, 0.7), ("olha", 0.8, 1.0), ("isso", 1.0, 1.3), ("aqui", 1.3, 1.5),
+                ("chegou", 1.6, 1.9), ("hoje.", 1.9, 2.3), ("Sério", 3.5, 3.9)]  # fmt: skip
+    linhas = [ln for ln in gerar_ass(palavras).splitlines() if ln.startswith("Dialogue")]
+    textos = [ln.split(",L,")[1] for ln in linhas]
+    assert textos == ["Gente,", "olha isso aqui", "chegou hoje.", "Sério"]
+    assert linhas[2].split(",")[2] == "0:00:02.50"  # pausa longa: some 0,2 s depois da fala
