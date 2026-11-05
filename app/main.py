@@ -61,7 +61,10 @@ def criar_app() -> FastAPI:
     async def ciclo_de_vida(_: FastAPI) -> AsyncIterator[None]:
         # O trabalhador da fila roda junto com o servidor (decisão de Eri, 25/10).
         if config.trabalhador_ativo:
-            trabalhador = Trabalhador(EXECUTORES)
+            from app.geracao.executores import executar_tipo_foto
+
+            # Foto ligada à geração (passo 1.2, parte 4); vídeo, voz e arte vêm depois.
+            trabalhador = Trabalhador({**EXECUTORES, "foto": executar_tipo_foto})
             trabalhador.iniciar()
             estado["trabalhador"] = trabalhador
         # Backup diário do banco para o R2 (tarefa 13), também sem custo extra.

@@ -75,10 +75,12 @@ class CustoFornecedor:
 
 
 # Nosso custo estimado por item (US$), medido em 30/10–01/11 (financeiro §2).
+# Fotos: 2 opções × US$ 0,04 (preço direto do nó `foto`, de propósito pelo lado alto; no modo
+# lote o Google cobra metade, ~US$ 0,04 no total).
 CUSTO_FORNECEDOR: dict[str, CustoFornecedor] = {
-    "foto": CustoFornecedor("google", Decimal("0.05")),
-    "foto_outro_corpo": CustoFornecedor("google", Decimal("0.05")),
-    "foto_produto": CustoFornecedor("google", Decimal("0.05")),
+    "foto": CustoFornecedor("google", Decimal("0.08")),
+    "foto_outro_corpo": CustoFornecedor("google", Decimal("0.08")),
+    "foto_produto": CustoFornecedor("google", Decimal("0.08")),
     "arte": CustoFornecedor("google", Decimal("0.03")),
     "video_480": CustoFornecedor("tein", Decimal("2.15")),
     "video_2_angulos": CustoFornecedor("tein", Decimal("4.25")),

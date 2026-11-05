@@ -45,7 +45,9 @@ def test_mesmo_pedido_duas_vezes_devolve_o_mesmo(sessao_limpa):
     primeiro, _ = pedir(sessao_limpa, loja)
     segundo, criado = pedir(sessao_limpa, loja)
     assert criado is False and segundo.id == primeiro.id
-    total = sessao_limpa.scalar(select(func.count()).select_from(Trabalho))
+    total = sessao_limpa.scalar(
+        select(func.count()).select_from(Trabalho).where(Trabalho.loja_id == loja.id)
+    )
     assert total == 1
     enfileirados = [
         e for e in listar_eventos(sessao_limpa, loja.id) if e.acao == "trabalho_enfileirado"
