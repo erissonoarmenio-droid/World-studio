@@ -32,7 +32,9 @@ class Config(BaseSettings):
     atlas_api_key: SecretStr | None = None  # vídeo (Seedance) e lipsync — reserva
     tein_api_key: SecretStr | None = None  # vídeo (Seedance 2.5) — fornecedor principal
     decart_api_key: SecretStr | None = None  # vestir a peça no vídeo (reserva)
-    anthropic_api_key: SecretStr | None = None  # diretor (conversa → roteiro do vídeo)
+    anthropic_api_key: SecretStr | None = None  # bot (influencer), diretor, analista de peças
+    anthropic_api_key_cerebro: SecretStr | None = None  # só o Cérebro da Central (gasto separado)
+    elevenlabs_api_key: SecretStr | None = None  # voz "de gente de verdade" (gravação da lojista)
 
     # Chave da API interna (/interno/...). Vazio = API interna desligada.
     chave_interna: SecretStr | None = None
@@ -55,6 +57,8 @@ class Config(BaseSettings):
         "tein_api_key",
         "decart_api_key",
         "anthropic_api_key",
+        "anthropic_api_key_cerebro",
+        "elevenlabs_api_key",
         "chave_interna",
         mode="before",
     )
