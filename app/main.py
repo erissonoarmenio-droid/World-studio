@@ -9,8 +9,11 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from app.config import obter_config
+from app.interno import resposta_de_erro
+from app.interno import rota as rota_interna
 from app.nucleo.backup import Agendador
 from app.nucleo.db import banco_ok
+from app.nucleo.erros import ErroNucleo
 from app.nucleo.fila.trabalhador import EXECUTORES, Trabalhador
 
 
@@ -85,6 +88,9 @@ def criar_app() -> FastAPI:
         redoc_url=None,
         lifespan=ciclo_de_vida,
     )
+
+    app.include_router(rota_interna)
+    app.add_exception_handler(ErroNucleo, resposta_de_erro)
 
     @app.get("/saude")
     def saude() -> JSONResponse:

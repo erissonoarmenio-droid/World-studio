@@ -119,6 +119,9 @@ def concluir(sessao: Session, trabalho_id: int, resultado: Resultado) -> Trabalh
         },
         custo=resultado.custo_real,
     )
+    from app.pedidos import ao_concluir  # import tardio: pedidos depende da fila
+
+    ao_concluir(sessao, trabalho)  # desconta os créditos de vez (se veio de um pedido)
     return trabalho
 
 
@@ -135,6 +138,10 @@ def _registrar_falha(sessao: Session, trabalho: Trabalho, erro: str, agora: date
         acao = "trabalho_falhou"  # a Central e o registro de erros leem daqui
     sessao.flush()
     registrar_evento(sessao, acao=acao, loja_id=trabalho.loja_id, detalhes=base)
+    if trabalho.estado == "falhou":
+        from app.pedidos import ao_falhar_de_vez
+
+        ao_falhar_de_vez(sessao, trabalho)  # devolve os créditos: falha nossa não se cobra
 
 
 def falhar(sessao: Session, trabalho_id: int, erro: str, agora: datetime | None = None) -> Trabalho:

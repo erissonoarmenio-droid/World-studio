@@ -33,6 +33,9 @@ class Config(BaseSettings):
     decart_api_key: SecretStr | None = None  # vestir a peça no vídeo (reserva)
     anthropic_api_key: SecretStr | None = None  # diretor (conversa → roteiro do vídeo)
 
+    # Chave da API interna (/interno/...). Vazio = API interna desligada.
+    chave_interna: SecretStr | None = None
+
     # Teto de gasto por dia e fornecedor (US$), por cima da tabela padrão. Ex.: {"tein": 25}
     tetos_diarios_usd: dict[str, float] = {}
 
@@ -50,6 +53,7 @@ class Config(BaseSettings):
         "atlas_api_key",
         "decart_api_key",
         "anthropic_api_key",
+        "chave_interna",
         mode="before",
     )
     @classmethod
