@@ -7,8 +7,12 @@ Ligados até agora:
 - `foto` / `foto_outro_corpo` → nó `foto` (Google, modo lote = metade do preço, ~2 min),
   2 opções por pedido, guardadas no R2 como mídias da loja.
 
+- `video_480` / `video_720` / `video_2_angulos` → nó `video_ugc` (Tein, Seedance 2.5), com o
+  1º quadro subido para a Tein, consulta com sinal de vida e o vídeo baixado para o R2 na hora.
+
 Ainda não ligados (o trabalho falha com motivo claro e os créditos voltam sozinhos):
-foto de produto, criar influencer, vídeo (Tein + aviso automático), voz, arte.
+foto de produto, criar influencer, voz, arte. O aviso automático da Tein (webhook) fica para
+depois: por enquanto o executor consulta a cada 10 s (funciona, só ocupa o trabalhador).
 
 Regras que valem para todo executor:
 - Envio único com aprovação (`nos/envio.py`): o teto de cada envio é o custo estimado do
@@ -55,16 +59,38 @@ def _google() -> Fornecedor:
     return Google(chave, modo="lote")
 
 
-FORNECEDORES: dict[str, Callable[[], Fornecedor]] = {"google": _google}
+def _tein() -> Fornecedor:
+    from app.geracao.fornecedores.tein import Tein
+
+    chave = obter_config().tein_api_key
+    if chave is None:
+        raise RuntimeError("TEIN_API_KEY não configurada no servidor")
+    return Tein(chave)
+
+
+def _baixar(url: str) -> bytes:
+    """A Tein apaga os arquivos em 14 dias: o vídeo é baixado e guardado no R2 na hora."""
+    import httpx
+
+    with httpx.Client(timeout=httpx.Timeout(120.0, connect=15.0), follow_redirects=True) as c:
+        r = c.get(url)
+        r.raise_for_status()
+        return r.content
+
+
+FORNECEDORES: dict[str, Callable[[], Fornecedor]] = {"google": _google, "tein": _tein}
 DORMIR: Callable[[float], None] = time.sleep
+BAIXAR: Callable[[str], bytes] = _baixar
 
 
-def _aguardar(fornecedor: Fornecedor, resposta: Resposta, trabalho_id: int) -> Resposta:
+def _aguardar(
+    fornecedor: Fornecedor, resposta: Resposta, trabalho_id: int, maximo: float = ESPERA_MAXIMA
+) -> Resposta:
     """Consulta até ficar pronto ou falhar, avisando a fila que está vivo."""
     esperado = 0.0
     while resposta.estado == "na_fila":
-        if esperado >= ESPERA_MAXIMA:
-            raise TimeoutError("o fornecedor passou de 15 min sem terminar")
+        if esperado >= maximo:
+            raise TimeoutError(f"o fornecedor passou de {int(maximo // 60)} min sem terminar")
         DORMIR(ESPERA_ENTRE_CONSULTAS)
         esperado += ESPERA_ENTRE_CONSULTAS
         with abrir_sessao() as s:
@@ -76,11 +102,18 @@ def _aguardar(fornecedor: Fornecedor, resposta: Resposta, trabalho_id: int) -> R
     return resposta
 
 
-def _gerar(no: No, pedido: Pedido, trabalho: Trabalho, teto: Decimal) -> Resposta:
-    fornecedor = FORNECEDORES[pedido.fornecedor]()
+def _gerar(
+    no: No,
+    pedido: Pedido,
+    trabalho: Trabalho,
+    teto: Decimal,
+    fornecedor: Fornecedor | None = None,
+    maximo: float = ESPERA_MAXIMA,
+) -> Resposta:
+    fornecedor = fornecedor or FORNECEDORES[pedido.fornecedor]()
     aprovacao = Aprovacao(por=f"loja:{trabalho.loja_id}", custo_max=teto)
     resposta = enviar(no, pedido, aprovacao, fornecedor, RegistroEmMemoria())
-    return _aguardar(fornecedor, resposta, trabalho.id)
+    return _aguardar(fornecedor, resposta, trabalho.id, maximo)
 
 
 def _imagem(loja_id: int, midia_id: int | None) -> Imagem | None:
@@ -143,6 +176,65 @@ def executar_foto_influencer(trabalho: Trabalho) -> Resultado:
     if not midias:
         raise RuntimeError("o fornecedor terminou sem nenhuma imagem")
     return Resultado({"midias": midias, "no": no.nome}, custo)
+
+
+ESPERA_MAXIMA_VIDEO = 45 * 60  # 720p na fila da Tein: 20–40 min (01/11)
+
+
+def executar_video(trabalho: Trabalho) -> Resultado:
+    """dados: {"entradas": [campos de EntradaUGC sem imagem_url] (1, ou 2 para os 2 ângulos),
+    "primeiro_quadro_midia_id": foto aprovada da influencer com a peça}.
+
+    O roteiro (planos e falas) já chega pronto do diretor; aqui só gera, baixa e guarda.
+    Reenvio por queda do servidor não cobra 2×: a Tein usa a `idempotency_key` do payload.
+    """
+    from app.geracao.nos.video_ugc import EntradaUGC, NoVideoUGC
+
+    d: dict[str, Any] = trabalho.dados
+    entradas = d.get("entradas") or []
+    esperado = 2 if d.get("item") == "video_2_angulos" else 1
+    if len(entradas) != esperado:
+        raise ValueError(f"o pedido precisa de {esperado} roteiro(s) de vídeo")
+    resolucao = "720p" if d.get("item") == "video_720" else "480p"
+
+    fornecedor = FORNECEDORES["tein"]()
+    with abrir_sessao() as s:
+        m = midia.obter_midia(s, d["primeiro_quadro_midia_id"], trabalho.loja_id)
+        tipo_quadro = m.content_type
+        quadro = midia.ler(s, m.id, trabalho.loja_id)
+    url_quadro = fornecedor.subir_midia(quadro, "quadro1.png", tipo_quadro)  # type: ignore[attr-defined]
+
+    no = NoVideoUGC()
+    pedidos_prontos = []
+    for campos in entradas:  # confere TODOS antes de gastar qualquer um
+        entrada = EntradaUGC(**{**campos, "resolucao": resolucao, "imagem_url": url_quadro})
+        pedidos_prontos.append(no.preparar(entrada)[0])
+    estimado = trabalho.custo_estimado or sum(p.custo_estimado for p in pedidos_prontos)
+    teto = estimado * FOLGA_APROVACAO / len(pedidos_prontos)
+
+    custo = Decimal("0")
+    midias: list[int] = []
+    for pedido in pedidos_prontos:
+        resposta = _gerar(no, pedido, trabalho, teto, fornecedor, ESPERA_MAXIMA_VIDEO)
+        custo += (
+            Decimal(str(resposta.custo)) if resposta.custo is not None else pedido.custo_estimado
+        )
+        url = next((x for x in resposta.saidas if isinstance(x, str)), None)
+        if url is None:
+            raise RuntimeError("a Tein terminou sem o link do vídeo")
+        conteudo = BAIXAR(url)
+        with abrir_sessao() as s:
+            v = midia.enviar(
+                s,
+                loja_id=trabalho.loja_id,
+                conteudo=conteudo,
+                tipo="video",
+                content_type="video/mp4",
+                origem="geracao",
+                autor=SISTEMA,
+            )
+            midias.append(v.id)
+    return Resultado({"midias": midias, "no": no.nome, "resolucao": resolucao}, custo)
 
 
 EXECUTORES_FOTO: dict[str, Callable[[Trabalho], Resultado]] = {

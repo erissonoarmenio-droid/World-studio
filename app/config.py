@@ -29,7 +29,8 @@ class Config(BaseSettings):
 
     # Fornecedores de geração (nós). Vazio = desligado; os testes usam fornecedor simulado.
     google_api_key: SecretStr | None = None  # foto (Nano Banana), voz (TTS) e juiz
-    atlas_api_key: SecretStr | None = None  # vídeo (Seedance) e lipsync
+    atlas_api_key: SecretStr | None = None  # vídeo (Seedance) e lipsync — reserva
+    tein_api_key: SecretStr | None = None  # vídeo (Seedance 2.5) — fornecedor principal
     decart_api_key: SecretStr | None = None  # vestir a peça no vídeo (reserva)
     anthropic_api_key: SecretStr | None = None  # diretor (conversa → roteiro do vídeo)
 
@@ -51,6 +52,7 @@ class Config(BaseSettings):
         "r2_bucket_backup",
         "google_api_key",
         "atlas_api_key",
+        "tein_api_key",
         "decart_api_key",
         "anthropic_api_key",
         "chave_interna",

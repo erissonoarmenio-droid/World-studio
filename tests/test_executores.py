@@ -119,3 +119,99 @@ def test_item_ainda_nao_ligado_falha_com_motivo(ambiente):
     with pytest.raises(executores.NaoLigado):
         executores.executar_tipo_foto(trabalho)
     assert ambiente.envios == 0
+
+
+# --- vídeo (Tein simulada) ----------------------------------------------------------------------
+
+MP4 = b"\x00\x00\x00\x18ftypmp42video-falso"
+
+
+class TeinSimulada:
+    nome = "tein"
+
+    def __init__(self):
+        self.envios = 0
+        self.uploads = 0
+
+    def subir_midia(self, conteudo, nome_arquivo, tipo):
+        self.uploads += 1
+        return "https://tein.exemplo/quadro1.png"
+
+    def enviar(self, pedido):
+        self.envios += 1
+        assert pedido.payload["reference_image"] == ["https://tein.exemplo/quadro1.png"]
+        return Resposta(estado="na_fila", id=f"job-{self.envios}")
+
+    def consultar(self, id_trabalho):
+        return Resposta(
+            estado="pronto", id=id_trabalho, saidas=["https://tein.exemplo/v.mp4"], custo=2.05
+        )
+
+
+def _roteiro():
+    from tests.geracao.test_no_video_ugc import _v3
+
+    return _v3().model_dump(mode="json", exclude={"imagem_url", "audio_url", "resolucao"})
+
+
+def preparar_video(nome, item="video_480", entradas=None):
+    with sessao() as s:
+        from app.nucleo.lojas import criar_loja_com_dona
+
+        loja, dona = criar_loja_com_dona(s, {"nome": nome}, {"nome": "Ana"}, ERI)
+        registrar_aceite(s, dona.id, "termos_privacidade", "v1", Autor("pessoa", dona.id))
+        cr.ativar_plano(s, loja.id, "social_media", f"mp-vid-{loja.id}")
+        quadro = midia.enviar(
+            s,
+            loja_id=loja.id,
+            conteudo=PNG,
+            tipo="resultado",
+            content_type="image/png",
+            origem="geracao",
+            autor=ERI,
+        )
+        chave = f"vid-{loja.id}-1"
+        pedidos.criar_pedido(
+            s,
+            loja_id=loja.id,
+            item=item,
+            dados={
+                "entradas": entradas if entradas is not None else [_roteiro()],
+                "primeiro_quadro_midia_id": quadro.id,
+            },
+            chave_unica=chave,
+        )
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == chave))
+        trabalho.estado = "rodando"
+        s.flush()
+        s.expunge(trabalho)
+        return loja.id, trabalho
+
+
+@pytest.fixture
+def tein(ambiente, monkeypatch):
+    t = TeinSimulada()
+    monkeypatch.setitem(executores.FORNECEDORES, "tein", lambda: t)
+    monkeypatch.setattr(executores, "BAIXAR", lambda url: MP4)
+    return t
+
+
+def test_video_gera_baixa_para_o_r2_e_guarda_o_custo_cobrado(tein):
+    loja_id, trabalho = preparar_video("Exec Video")
+    resultado = executores.executar_video(trabalho)
+    assert tein.uploads == 1 and tein.envios == 1
+    assert resultado.custo_real == Decimal("2.05")
+    with sessao() as s:
+        assert midia.ler(s, resultado.dados["midias"][0], loja_id) == MP4
+        concluir(s, trabalho.id, resultado)
+        assert cr.saldo(s, loja_id).disponivel == 180 - 15
+
+
+def test_dois_angulos_conferem_os_dois_roteiros_antes_de_gastar(tein):
+    ruim = {**_roteiro(), "planos": [{**_roteiro()["planos"][0], "fala": "x " * 60}]}
+    _, trabalho = preparar_video(
+        "Exec 2 angulos", item="video_2_angulos", entradas=[_roteiro(), ruim]
+    )
+    with pytest.raises(Exception):  # noqa: B017 - qualquer barreira serve: nada pode ter saído
+        executores.executar_video(trabalho)
+    assert tein.envios == 0
