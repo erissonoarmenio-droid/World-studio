@@ -59,3 +59,15 @@ def tabelas_do_banco(sessao) -> set[str]:
         text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
     ).scalars()
     return set(linhas)
+
+
+@pytest.fixture(autouse=True)
+def tetos_diarios_altos(monkeypatch, banco_de_teste):
+    """O teto diário é por fornecedor e por dia, somando TODAS as lojas. Testes que gravam no
+    banco de verdade (API, executores) somam gasto entre si; aqui o teto fica alto e só os
+    testes do teto usam o valor real."""
+    from app.config import obter_config
+
+    monkeypatch.setattr(
+        obter_config(), "tetos_diarios_usd", {"tein": 1e6, "google": 1e6, "voz": 1e6}
+    )

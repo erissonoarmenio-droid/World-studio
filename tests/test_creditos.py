@@ -194,7 +194,10 @@ def test_custo_muito_acima_do_estimado_avisa_o_eri(sessao_limpa):
 # --- teto diário ------------------------------------------------------------------------------
 
 
-def test_teto_diario_da_tein_para_o_7o_video(sessao_limpa):
+def test_teto_diario_da_tein_para_o_7o_video(sessao_limpa, monkeypatch):
+    from app.config import obter_config
+
+    monkeypatch.setattr(obter_config(), "tetos_diarios_usd", {"tein": 15.0})  # o padrão real
     loja = loja_com_plano(sessao_limpa, plano="social_media")
     for i in range(6):  # 6 × 2,15 = 12,90
         cr.reservar(sessao_limpa, loja.id, "video_480", f"v{i}", agora=AGORA)
