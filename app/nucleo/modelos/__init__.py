@@ -12,9 +12,14 @@ from app.nucleo.modelos.cadastro import (
     PerfilLoja,
     Pessoa,
 )
+from app.nucleo.modelos.creditos import Assinatura, Lancamento, Lote, Reserva
 from app.nucleo.modelos.fila import Trabalho
 
 __all__ = [
+    "Assinatura",
+    "Lancamento",
+    "Lote",
+    "Reserva",
     "CodigoRecuperacao",
     "Consentimento",
     "Convite",

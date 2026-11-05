@@ -33,3 +33,19 @@ class PalavraBloqueada(ErroNucleo):
 
 class PalavraNecessaria(ErroNucleo):
     """A ação pede a palavra-senha e ela não foi digitada nos últimos 30 minutos."""
+
+
+class LojaDesligada(ErroNucleo):
+    """A loja não está com o plano ativo (vencida, pausada ou cancelada): não gera nada."""
+
+
+class SemCreditos(ErroNucleo):
+    """O saldo não cobre o pedido. `faltam` diz quantos créditos faltam."""
+
+    def __init__(self, motivo: str, faltam: int):
+        super().__init__(motivo)
+        self.faltam = faltam
+
+
+class TetoAtingido(ErroNucleo):
+    """O gasto do dia com um fornecedor passaria do teto: para e avisa o Eri."""

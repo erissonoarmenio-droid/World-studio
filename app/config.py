@@ -33,6 +33,9 @@ class Config(BaseSettings):
     decart_api_key: SecretStr | None = None  # vestir a peça no vídeo (reserva)
     anthropic_api_key: SecretStr | None = None  # diretor (conversa → roteiro do vídeo)
 
+    # Teto de gasto por dia e fornecedor (US$), por cima da tabela padrão. Ex.: {"tein": 25}
+    tetos_diarios_usd: dict[str, float] = {}
+
     @property
     def r2_configurado(self) -> bool:
         return bool(self.r2_account_id and self.r2_access_key_id and self.r2_secret_access_key)
