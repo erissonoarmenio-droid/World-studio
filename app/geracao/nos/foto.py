@@ -193,8 +193,8 @@ class NoFoto(No):
             ancora += (
                 f" {quais} = photos of the real garment: reproduce this exact garment on the "
                 "person from image 1 (same colour, fabric, collar, buttons, sleeves, and any "
-                "embroidery or print with the same pattern, colours, width and position); do not simplify, "
-                "redesign or move any detail; ignore the surface it lies on."
+                "embroidery or print with the same pattern, colours, width and position); do not "
+                "simplify, redesign or move any detail; ignore the surface it lies on."
             )
         idade = (
             f" She is {entrada.idade} years old; keep her youthful {entrada.idade}-year-old "
