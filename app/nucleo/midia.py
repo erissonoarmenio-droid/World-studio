@@ -31,6 +31,7 @@ TIPOS_ARQUIVO = {
     "audio/mpeg": "mp3",
     "audio/wav": "wav",
     "audio/ogg": "ogg",
+    "audio/mp4": "m4a",  # áudio gravado no iPhone (06/11)
 }
 TAMANHO_MAXIMO = 200 * 1024 * 1024
 VALIDADE_LINK = 3600  # 1 hora
