@@ -46,6 +46,21 @@ class GoogleSimulado:
         return Resposta(estado="pronto", id=id_trabalho, saidas=[parte])
 
 
+@pytest.fixture(autouse=True)
+def limpar_trabalhos_rodando():
+    """Estes testes gravam no banco de verdade e deixam trabalhos "rodando"; no fim, cancela
+    para não confundir os testes da fila que procuram trabalhos travados."""
+    yield
+    from sqlalchemy import update
+
+    with sessao() as s:
+        s.execute(
+            update(Trabalho)
+            .where(Trabalho.estado == "rodando")
+            .values(estado="cancelado", travado_ate=None)
+        )
+
+
 @pytest.fixture
 def ambiente(monkeypatch):
     with mock_aws():
@@ -115,7 +130,8 @@ def test_pedido_barrado_pela_regra_nao_gasta(ambiente):
 
 
 def test_item_ainda_nao_ligado_falha_com_motivo(ambiente):
-    _, trabalho = preparar("Exec Produto", item="foto_produto")
+    _, trabalho = preparar("Exec Nao Ligado")
+    trabalho.dados["item"] = "item_que_nao_existe"
     with pytest.raises(executores.NaoLigado):
         executores.executar_tipo_foto(trabalho)
     assert ambiente.envios == 0
@@ -215,3 +231,144 @@ def test_dois_angulos_conferem_os_dois_roteiros_antes_de_gastar(tein):
     with pytest.raises(Exception):  # noqa: B017 - qualquer barreira serve: nada pode ter saído
         executores.executar_video(trabalho)
     assert tein.envios == 0
+
+
+# --- foto de produto -----------------------------------------------------------------------
+
+PRODUTO = {
+    "peca_nome": "shirt",
+    "detalhes": "terracotta linen shirt, pointed collar, tone-on-tone buttons, no pocket",
+    "cena": "mesa",
+    "opcoes": 2,
+}
+
+
+def preparar_produto(nome, **extra):
+    with sessao() as s:
+        from app.nucleo.lojas import criar_loja_com_dona
+
+        loja, dona = criar_loja_com_dona(s, {"nome": nome}, {"nome": "Ana"}, ERI)
+        registrar_aceite(s, dona.id, "termos_privacidade", "v1", Autor("pessoa", dona.id))
+        cr.ativar_plano(s, loja.id, "estudio", f"mp-prod-{loja.id}")
+        peca = midia.enviar(
+            s,
+            loja_id=loja.id,
+            conteudo=PNG,
+            tipo="peca",
+            content_type="image/png",
+            origem="lojista",
+            autor=ERI,
+        )
+        chave = f"prod-{loja.id}-1"
+        pedidos.criar_pedido(
+            s,
+            loja_id=loja.id,
+            item="foto_produto",
+            dados={**PRODUTO, "peca_midia_id": peca.id, **extra},
+            chave_unica=chave,
+        )
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == chave))
+        trabalho.estado = "rodando"
+        s.flush()
+        s.expunge(trabalho)
+        return loja.id, trabalho, peca.id
+
+
+def test_foto_produto_extrai_uma_vez_e_faz_2_cenas(ambiente):
+    loja_id, trabalho, _ = preparar_produto("Exec Produto")
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 3  # 1 extração + 2 cenas
+    assert len(resultado.dados["midias"]) == 2 and resultado.dados["extraida_midia_id"]
+    assert resultado.custo_real == Decimal("0.06")
+
+
+def test_foto_produto_reaproveita_a_peca_ja_extraida(ambiente):
+    _, trabalho, peca_id = preparar_produto("Exec Produto 2")
+    trabalho.dados["extraida_midia_id"] = peca_id
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 2  # só as cenas
+    assert resultado.dados["extraida_midia_id"] == peca_id
+
+
+def test_cena_livre_sem_descricao_e_barrada_antes_de_gastar(ambiente):
+    _, trabalho, _ = preparar_produto("Exec Produto 3", cena="livre", cena_livre="chao")
+    with pytest.raises(ValueError):
+        executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 0
+
+
+# --- criar influencer ----------------------------------------------------------------------
+
+INFLUENCER = {
+    "genero": "homem",
+    "idade": 27,
+    "corpo": "tall and slim build",
+    "roupa": "a plain white crew-neck t-shirt and black shorts",
+    "oculos": "black rectangular eyeglasses",
+}
+
+
+def preparar_influencer(nome, item="influencer_principal", consentir=True, **dados):
+    with sessao() as s:
+        from app.nucleo.lojas import criar_loja_com_dona
+
+        loja, dona = criar_loja_com_dona(s, {"nome": nome}, {"nome": "Eri"}, ERI)
+        registrar_aceite(s, dona.id, "termos_privacidade", "v1", Autor("pessoa", dona.id))
+        if consentir:
+            registrar_aceite(s, dona.id, "clone", "v1", Autor("pessoa", dona.id))
+        cr.ativar_plano(s, loja.id, "estudio", f"mp-inf-{loja.id}")
+        ids = [
+            midia.enviar(
+                s,
+                loja_id=loja.id,
+                conteudo=PNG,
+                tipo="influencer",
+                content_type="image/png",
+                origem="lojista",
+                autor=ERI,
+            ).id
+            for _ in range(4)
+        ]
+        chave = f"inf-{loja.id}-1"
+        extra = (
+            {"pessoa_id": dona.id, "fotos_midia_ids": ids}
+            if dados.get("modo") == "da_pessoa"
+            else {}
+        )
+        if dados.get("modo") == "vistas":
+            extra = {"anterior_midia_id": ids[0]}
+        pedidos.criar_pedido(
+            s, loja_id=loja.id, item=item, dados={**INFLUENCER, **extra, **dados}, chave_unica=chave
+        )
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == chave))
+        trabalho.estado = "rodando"
+        s.flush()
+        s.expunge(trabalho)
+        return loja.id, trabalho
+
+
+def test_influencer_nova_gera_a_principal(ambiente):
+    _, trabalho = preparar_influencer(
+        "Inf Nova", modo="nova", aparencia="short dark wavy hair, brown eyes, light stubble"
+    )
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 1 and len(resultado.dados["midias"]) == 1
+
+
+def test_influencer_da_pessoa_com_consentimento(ambiente):
+    _, trabalho = preparar_influencer("Inf Pessoa", modo="da_pessoa")
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 1 and resultado.dados["modo"] == "da_pessoa"
+
+
+def test_influencer_da_pessoa_sem_consentimento_nao_gasta(ambiente):
+    _, trabalho = preparar_influencer("Inf Sem Ok", consentir=False, modo="da_pessoa")
+    with pytest.raises(PermissionError):
+        executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 0
+
+
+def test_vistas_geram_close_e_costas(ambiente):
+    _, trabalho = preparar_influencer("Inf Vistas", modo="vistas")
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 2 and len(resultado.dados["midias"]) == 2

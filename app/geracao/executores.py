@@ -10,8 +10,13 @@ Ligados até agora:
 - `video_480` / `video_720` / `video_2_angulos` → nó `video_ugc` (Tein, Seedance 2.5), com o
   1º quadro subido para a Tein, consulta com sinal de vida e o vídeo baixado para o R2 na hora.
 
-Ainda não ligados (o trabalho falha com motivo claro e os créditos voltam sozinhos):
-foto de produto, criar influencer, voz, arte. O aviso automático da Tein (webhook) fica para
+- `foto_produto` → nó `foto_produto` (extrai a peça 1× por peça e reaproveita; depois a cena).
+
+- `influencer_principal` / `influencer_extra` / `ajuste_rosto` → nó `influencer` (criar nova,
+  da própria pessoa com consentimento "clone", ajustar, ou gerar as vistas close + costas).
+
+Ainda não ligados (o trabalho falha com motivo claro e os créditos voltam sozinhos): voz, arte.
+O aviso automático da Tein (webhook) fica para
 depois: por enquanto o executor consulta a cada 10 s (funciona, só ocupa o trabalhador).
 
 Regras que valem para todo executor:
@@ -237,9 +242,146 @@ def executar_video(trabalho: Trabalho) -> Resultado:
     return Resultado({"midias": midias, "no": no.nome, "resolucao": resolucao}, custo)
 
 
+def _guardar_imagem(loja_id: int, conteudo: bytes, tipo_conteudo: str, tipo: str) -> int:
+    with abrir_sessao() as s:
+        m = midia.enviar(
+            s,
+            loja_id=loja_id,
+            conteudo=conteudo,
+            tipo=tipo,
+            content_type=tipo_conteudo,
+            origem="geracao",
+            autor=SISTEMA,
+        )
+        return m.id
+
+
+def executar_foto_produto(trabalho: Trabalho) -> Resultado:
+    """dados: {"peca_midia_id" (foto do lojista), "peca_nome", "detalhes", "cena",
+    "cena_livre"?, "proporcao"?, "extraida_midia_id"?, "opcoes": 2}.
+
+    1) Extrai a peça da foto do lojista (1× por peça: se já existe `extraida_midia_id` no
+       catálogo, reaproveita e não gasta de novo). 2) Põe a peça na cena, N opções.
+    O resultado devolve `extraida_midia_id` para o bot guardar no catálogo da peça."""
+    from app.geracao.nos.foto_produto import EntradaProduto, NoFotoProduto
+
+    d: dict[str, Any] = trabalho.dados
+    opcoes = int(d.get("opcoes", 2))
+    if not 1 <= opcoes <= 4:
+        raise ValueError("opcoes fora do limite (1 a 4)")
+    comum = {
+        "peca_nome": d["peca_nome"],
+        "detalhes": d["detalhes"],
+        "proporcao": d.get("proporcao", "4:5"),
+    }
+    no = NoFotoProduto()
+    # Confere a cena ANTES de gastar com a extração (cena livre sem descrição, por exemplo).
+    cena_campos = {"cena": d.get("cena", "cama"), "cena_livre": d.get("cena_livre", "")}
+    EntradaProduto(
+        etapa="cena", foto=_imagem(trabalho.loja_id, d["peca_midia_id"]), **comum, **cena_campos
+    )
+
+    teto = (trabalho.custo_estimado or Decimal("0.08")) * FOLGA_APROVACAO
+    custo = Decimal("0")
+    extraida_id = d.get("extraida_midia_id")
+    if extraida_id is None:
+        entrada = EntradaProduto(
+            etapa="extrair", foto=_imagem(trabalho.loja_id, d["peca_midia_id"]), **comum
+        )
+        pedido, _ = no.preparar(entrada)
+        resposta = _gerar(no, pedido, trabalho, teto)
+        custo += _custo(resposta, pedido)
+        imagens = _imagens_da_resposta(resposta)
+        if not imagens:
+            raise RuntimeError("a extração da peça terminou sem imagem")
+        conteudo, tipo = imagens[0]
+        extraida_id = _guardar_imagem(trabalho.loja_id, conteudo, tipo, "peca")
+
+    entrada = EntradaProduto(
+        etapa="cena", foto=_imagem(trabalho.loja_id, extraida_id), **comum, **cena_campos
+    )
+    pedido, _ = no.preparar(entrada)
+    midias: list[int] = []
+    for _ in range(opcoes):
+        resposta = _gerar(no, pedido, trabalho, teto)
+        custo += _custo(resposta, pedido)
+        for conteudo, tipo in _imagens_da_resposta(resposta)[:1]:
+            midias.append(_guardar_imagem(trabalho.loja_id, conteudo, tipo, "resultado"))
+    if not midias:
+        raise RuntimeError("o fornecedor terminou sem nenhuma imagem")
+    return Resultado({"midias": midias, "no": no.nome, "extraida_midia_id": extraida_id}, custo)
+
+
+def _custo(resposta: Resposta, pedido: Pedido) -> Decimal:
+    return Decimal(str(resposta.custo)) if resposta.custo is not None else pedido.custo_estimado
+
+
+def executar_influencer(trabalho: Trabalho) -> Resultado:
+    """Criar a influencer (principal), ajustar o rosto ou gerar as vistas (close + costas).
+
+    dados: {"modo": "nova" | "da_pessoa" | "ajuste" | "vistas", "genero", "idade", "corpo",
+    "roupa", "aparencia"?, "oculos"?, "fotos_midia_ids"? (da_pessoa, até 6),
+    "pessoa_id"? (da_pessoa: dona do rosto), "anterior_midia_id"? (ajuste/vistas), "mudanca"?}.
+    Cobrança (decidida pelo bot ao criar o pedido): 1ª influencer, 3 primeiros ajustes e vistas
+    no item `influencer_principal` (0 cr); 2ª/3ª em `influencer_extra` (5 cr); do 4º ajuste em
+    diante `ajuste_rosto` (2 cr).
+    """
+    from app.geracao.nos.influencer import EntradaInfluencer, NoInfluencer
+    from app.nucleo.consentimentos import consentimento_ativo
+
+    d: dict[str, Any] = dict(trabalho.dados)
+    modo = d.pop("modo")
+    comum = {
+        k: d[k]
+        for k in ("genero", "idade", "corpo", "roupa", "aparencia", "oculos", "mudanca")
+        if k in d
+    }
+    loja = trabalho.loja_id
+    entradas: list[EntradaInfluencer] = []
+    if modo == "da_pessoa":
+        pessoa_id = d.get("pessoa_id")
+        with abrir_sessao() as s:
+            if pessoa_id is None or consentimento_ativo(s, pessoa_id, "clone") is None:
+                raise PermissionError(
+                    "rosto de pessoa real só com o consentimento 'clone' dela registrado"
+                )
+        ids = list(d.get("fotos_midia_ids") or [])[:6]
+        fotos = [_imagem(loja, i) for i in ids]
+        entradas.append(EntradaInfluencer(modo="da_pessoa", fotos=fotos, **comum))
+    elif modo == "vistas":
+        anterior = _imagem(loja, d.get("anterior_midia_id"))
+        for vista in ("close", "costas"):
+            entradas.append(
+                EntradaInfluencer(modo="vista", vista=vista, anterior=anterior, **comum)
+            )
+    elif modo in ("nova", "ajuste"):
+        anterior = _imagem(loja, d.get("anterior_midia_id")) if modo == "ajuste" else None
+        entradas.append(EntradaInfluencer(modo=modo, anterior=anterior, **comum))
+    else:
+        raise ValueError(f"modo desconhecido: {modo!r}")
+
+    no = NoInfluencer()
+    pedidos_prontos = [no.preparar(e)[0] for e in entradas]  # confere tudo antes de gastar
+    teto = max(trabalho.custo_estimado or Decimal("0"), Decimal("0.40")) * FOLGA_APROVACAO
+    custo = Decimal("0")
+    midias: list[int] = []
+    for pedido in pedidos_prontos:
+        resposta = _gerar(no, pedido, trabalho, teto)
+        custo += _custo(resposta, pedido)
+        for conteudo, tipo in _imagens_da_resposta(resposta)[:1]:
+            midias.append(_guardar_imagem(loja, conteudo, tipo, "influencer"))
+    if not midias:
+        raise RuntimeError("o fornecedor terminou sem nenhuma imagem")
+    return Resultado({"midias": midias, "no": no.nome, "modo": modo}, custo)
+
+
 EXECUTORES_FOTO: dict[str, Callable[[Trabalho], Resultado]] = {
+    "influencer_principal": executar_influencer,
+    "influencer_extra": executar_influencer,
+    "ajuste_rosto": executar_influencer,
     "foto": executar_foto_influencer,
     "foto_outro_corpo": executar_foto_influencer,
+    "foto_produto": executar_foto_produto,
 }
 
 
