@@ -134,6 +134,40 @@ def checar_regras(no: str, regras: Sequence[Regra], pedido: Pedido) -> Relatorio
     return relatorio
 
 
+Genero = Literal["mulher", "homem"]
+
+# "her" como objeto (filming her, do not age her) vira "him"; como possessivo, "his".
+_HER_OBJETO = re.compile(
+    r"\bher\b(?=\s+(?:for|to|and|in|at|with|while|as|from|on|so|when|again|now|back|or)\b"
+    r"|\s*[.,;:!?)\"]|\s*$)"
+)
+_TROCAS_HOMEM = (
+    (re.compile(r"\bWOMAN\b"), "MAN"),
+    (re.compile(r"\bwoman\b"), "man"),
+    (re.compile(r"\bwomen\b"), "men"),
+    (re.compile(r"\bShe\b"), "He"),
+    (re.compile(r"\bshe\b"), "he"),
+    (re.compile(r"\bherself\b"), "himself"),
+    (re.compile(r"\bHer\b"), "His"),
+    (re.compile(r"\bHER\b"), "HIS"),
+)
+
+
+def para_genero(texto: str, genero: str) -> str:
+    """Troca os pronomes em inglês do prompt para homem (05–06/11: influencer do Eri e lojas
+    masculinas). Mulher é o padrão e fica igual. Falas em português não são mexidas."""
+    if genero != "homem":
+        return texto
+    texto = _HER_OBJETO.sub("him", texto)
+    texto = re.sub(r"\bher\b", "his", texto)
+    for padrao, troca in _TROCAS_HOMEM:
+        texto = padrao.sub(troca, texto)
+    # gesto fixo do bloco "corpo vivo" que não serve para cabelo curto (06/11)
+    return texto.replace(
+        "tucks hair behind his ear or adjusts a sleeve", "adjusts a sleeve or touches his collar"
+    )
+
+
 class No:
     """Base dos nós. Cada nó define `nome`, `regras` e `montar_pedido`."""
 

@@ -184,3 +184,16 @@ def test_dois_planos_bloqueia_cortes():
 def test_fala_com_aspas_recusada():
     with pytest.raises(ValueError):
         Plano(inicio=0, fim=4, acao="She walks to the rack and says:", fala='ela disse "oi"')
+
+
+def test_homem_troca_pronomes_e_mantem_falas():
+    import re
+
+    mulher = NoVideoUGC().preparar(_v3())[0].prompt
+    pedido, relatorio = NoVideoUGC().preparar(_v3(genero="homem"))
+    assert relatorio.falhas == []
+    assert not re.search(r"\b(she|her|herself|woman|women)\b", pedido.prompt, re.I)
+    assert "THE MAN AND THE" in pedido.prompt
+    falas_m = [p.fala for p in _v3().planos]
+    assert all(f in pedido.prompt for f in falas_m if f)  # português intacto
+    assert mulher != pedido.prompt

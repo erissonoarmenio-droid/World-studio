@@ -114,3 +114,10 @@ def test_fala_que_nao_cabe_em_16s_avisa():
     planos = [{"inicio": 0, "fim": 5}, {"inicio": 5, "fim": 10}, {"inicio": 10, "fim": 15}]
     with pytest.raises(FalaNaoCabe):
         encaixar_tempos(planos, [6.0, 6.0, 5.0])
+
+
+def test_homem_avisa_o_cerebro_e_vai_para_as_entradas():
+    cerebro = Falso(BOM)
+    d = DiretorUGC(cerebro).dirigir("x", "camisa", "https://x/q.jpg", genero="homem")
+    assert "HOMEM" in cerebro.textos[0]
+    assert all("THE MAN AND THE" in v.pedido.prompt for v in d.videos)

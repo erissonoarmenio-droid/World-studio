@@ -126,7 +126,9 @@ class DirecaoFalhou(Exception):
     """O roteiro não passou nas regras nem depois da correção. Nada foi enviado."""
 
 
-def _entradas(dados: dict[str, Any], imagem_url: str | None) -> list[tuple[str, EntradaUGC]]:
+def _entradas(
+    dados: dict[str, Any], imagem_url: str | None, genero: str = "mulher"
+) -> list[tuple[str, EntradaUGC]]:
     saida = []
     for v in dados["videos"]:
         saida.append(
@@ -143,13 +145,16 @@ def _entradas(dados: dict[str, Any], imagem_url: str | None) -> list[tuple[str, 
                     luz=v["luz"],
                     som_peca=v["som_peca"],
                     imagem_url=imagem_url,
+                    genero=genero,
                 ),
             )
         )
     return saida
 
 
-def _avaliar(dados: dict[str, Any], imagem_url: str | None) -> tuple[list[VideoDirigido], str]:
+def _avaliar(
+    dados: dict[str, Any], imagem_url: str | None, genero: str = "mulher"
+) -> tuple[list[VideoDirigido], str]:
     """Monta e checa os 2 vídeos. Devolve (vídeos ok, texto das falhas para corrigir)."""
     no = NoVideoUGC()
     falhas: list[str] = []
@@ -159,7 +164,7 @@ def _avaliar(dados: dict[str, Any], imagem_url: str | None) -> tuple[list[VideoD
         if sorted(angulos) != sorted(ANGULOS):
             falhas.append(f"os 2 vídeos precisam ser os ângulos {ANGULOS}; veio {angulos}")
         else:
-            for angulo, entrada in _entradas(dados, imagem_url):
+            for angulo, entrada in _entradas(dados, imagem_url, genero):
                 try:
                     pedido, relatorio = no.preparar(entrada)
                     videos.append(VideoDirigido(angulo, pedido, relatorio))
@@ -181,15 +186,22 @@ class DiretorUGC:
         imagem_url: str | None = None,
         foto_local: tuple[bytes, str] | None = None,
         local: str = "",
+        genero: str = "mulher",
     ) -> Direcao:
         texto = (
             f"PEDIDO DO LOJISTA: {pedido_lojista or '(não disse o que quer — sugira)'}\n"
             f"PEÇA: {peca}\n"
             f"LOCAL: {local or ('ver a foto' if foto_local else 'a loja do 1º quadro')}"
         )
+        if genero == "homem":
+            texto += (
+                "\nA INFLUENCER É UM HOMEM: as falas em português ficam no masculino ('separei "
+                "um pra mim', 'tô apaixonado') e as ações em inglês usam he/his; quem filma é "
+                "um AMIGO."
+            )
         imagens = [foto_local] if foto_local else None
         dados = self.cerebro.json(SISTEMA, texto, imagens)
-        videos, falhas = _avaliar(dados, imagem_url)
+        videos, falhas = _avaliar(dados, imagem_url, genero)
         if not falhas:
             return Direcao(dados.get("mensagem_para_lojista", ""), videos, 1)
         correcao = (
@@ -200,7 +212,7 @@ class DiretorUGC:
             "completo:\n" + falhas
         )
         dados = self.cerebro.json(SISTEMA, correcao, imagens)
-        videos, falhas = _avaliar(dados, imagem_url)
+        videos, falhas = _avaliar(dados, imagem_url, genero)
         if falhas:
             raise DirecaoFalhou(falhas)
         return Direcao(dados.get("mensagem_para_lojista", ""), videos, 2)

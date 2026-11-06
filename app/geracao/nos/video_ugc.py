@@ -17,7 +17,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.geracao.nos.base import Entrada, No, Pedido, Regra, normalizar_texto
+from app.geracao.nos.base import Entrada, Genero, No, Pedido, Regra, normalizar_texto, para_genero
 from app.geracao.nos.regras import registrar
 
 MODELO_TEIN = "seedance-2-5"
@@ -165,6 +165,7 @@ class EntradaUGC(Entrada):
     luz: str = LUZ_PADRAO
     som_peca: str = "soft fabric rustle, wooden hanger click"
     resolucao: Literal["480p", "720p"] = "480p"
+    genero: Genero = "mulher"  # "homem": pronomes trocados no prompt (06/11)
     imagem_url: str | None = None
     audio_url: str | None = None  # trilha das falas: só tom e ritmo (o Seedance refaz a voz, E28)
 
@@ -232,9 +233,10 @@ def montar_prompt(e: EntradaUGC) -> str:
         "ambience. No music.",
         NEGATIVOS.format(peca_nome=e.peca_nome, peca_nunca=e.peca_nunca),
     ]
-    return "\n\n".join(
+    prompt = "\n\n".join(
         normalizar_texto(b) if "\n" not in b else _normalizar_linhas(b) for b in blocos
     )
+    return para_genero(prompt, e.genero)
 
 
 def _normalizar_linhas(bloco: str) -> str:
@@ -282,7 +284,7 @@ def _fala_comeca_forte(p: Pedido) -> bool:
 
 
 def _corpo_vivo(p: Pedido) -> bool:
-    return CORPO_VIVO in p.prompt and all(
+    return para_genero(normalizar_texto(CORPO_VIVO), _e(p).genero) in p.prompt and all(
         any(v in pl.acao.lower() for v in ACOES_DE_CORPO) for pl in _e(p).planos
     )
 

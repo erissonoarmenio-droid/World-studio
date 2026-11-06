@@ -11,7 +11,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from app.geracao.nos.base import Entrada, No, Pedido, Regra, normalizar_texto
+from app.geracao.nos.base import Entrada, Genero, No, Pedido, Regra, normalizar_texto, para_genero
 from app.geracao.nos.regras import registrar
 
 MODELO = "gemini-nano-banana-2.1"
@@ -34,6 +34,7 @@ class Imagem(Entrada):
 
 class EntradaFoto(Entrada):
     influencer: Imagem  # Image 1: referência de identidade
+    genero: Genero = "mulher"  # "homem": pronomes trocados no prompt (06/11)
     idade: int = Field(ge=21, le=60)  # influencer sempre adulta (criar-influencer: 25+)
     aparencia: str = ""  # ex.: "dark wavy shoulder-length" (cabelo), da ficha da influencer
     # Biótipo da ficha da influencer (31/10, Eri: "violão marcado"). Quando preenchido, o corpo
@@ -63,7 +64,7 @@ def _ancora_ok(p: Pedido) -> bool:
     e = p.entrada
     if not e.sequencia or e.e_ancora:
         return True
-    return e.ancora is not None and "image 2 = the same woman" in _texto(p)
+    return e.ancora is not None and "image 2 = the same" in _texto(p)
 
 
 MAOS_EM_FOCO = ("hands open", "open hand", "finger", "palm", "wave", "waving", "show her hand")
@@ -178,7 +179,7 @@ class NoFoto(No):
             f" She is {entrada.idade} years old; keep her youthful {entrada.idade}-year-old "
             "face, do not age her. "
         )
-        prompt = base + ancora + idade + entrada.cena.strip()
+        prompt = para_genero(base + ancora + idade + entrada.cena.strip(), entrada.genero)
         imagens = [entrada.influencer] + ([entrada.ancora] if entrada.ancora else [])
         imagens += [entrada.cenario_foto] if entrada.cenario_foto else []
         partes = [{"text": prompt}] + [

@@ -91,3 +91,15 @@ def test_corpo_novo_troca_a_trava_do_corpo():
     assert "foto.corpo_sem_sexualizar" in {
         f.regra_id for f in NoFoto().checar(NoFoto().montar_pedido(ruim)).falhas
     }
+
+
+def test_homem_troca_pronomes_e_passa_nas_regras():
+    """06/11: influencer homem (o Eri). Mulher sai idêntica; homem sem 'she/her/woman'."""
+    pedido_m, _ = NoFoto().preparar(entrada("c2"))
+    pedido_h, rel = NoFoto().preparar(entrada("c2", genero="homem"))
+    assert pedido_m.prompt == F["casos"]["c2"]["prompt_2910"]
+    assert not rel.bloqueado, rel.resumo()
+    import re
+
+    assert not re.search(r"\b(she|her|herself|woman)\b", pedido_h.prompt, re.I)
+    assert "the same man" in pedido_h.prompt.lower()
