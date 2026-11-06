@@ -182,12 +182,16 @@ def pedir_influencer(
     oculos: str | None,
     roupa: str,
     chave: str | None = None,
+    aparencia: str = "",
+    corpo_midia: int | None = None,
+    close: bool = False,
+    corpo: str = "same build and proportions as in the reference photos",
 ) -> dict[str, Any]:
     from app.nucleo.pessoas import obter_pessoa_por_telegram
     from app.pedidos import criar_pedido
 
-    if not 3 <= len(fotos) <= 6:
-        raise SystemExit("mande de 3 a 6 fotos")
+    if not 2 <= len(fotos) <= 6:
+        raise SystemExit("mande de 2 a 6 fotos do rosto")
     with sessao() as s:
         pessoa = obter_pessoa_por_telegram(s, telegram_id)
         if pessoa is None:
@@ -198,9 +202,13 @@ def pedir_influencer(
             "fotos_midia_ids": fotos,
             "genero": "homem",
             "idade": idade,
-            "corpo": "same build and proportions as in the reference photos",
+            "corpo": corpo,
             "roupa": roupa,
+            "aparencia": aparencia,
+            "enquadramento": "close" if close else "corpo",
         }
+        if corpo_midia:
+            dados["corpo_midia_id"] = corpo_midia
         if oculos:
             dados["oculos"] = oculos
         situacao, criado = criar_pedido(
@@ -293,6 +301,10 @@ def main(argv: list[str] | None = None) -> int:
     inf.add_argument("--idade", type=int, required=True)
     inf.add_argument("--oculos")
     inf.add_argument("--roupa", default="plain white crew-neck t-shirt and dark jeans")
+    inf.add_argument("--aparencia", required=True, help="traços do rosto, em inglês")
+    inf.add_argument("--corpo-foto", type=int, help="mídia do corpo inteiro (só biótipo)")
+    inf.add_argument("--corpo", default="same build and proportions as in the reference photos")
+    inf.add_argument("--close", action="store_true", help="1º o close do rosto (E5)")
     sit = sub.add_parser("situacao")
     sit.add_argument("chave")
     dev = sub.add_parser("devolver")
@@ -306,7 +318,17 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(importar(a.de), ensure_ascii=False, indent=1))
     elif a.cmd == "influencer":
         fotos = [int(x) for x in a.fotos.split(",") if x.strip()]
-        r = pedir_influencer(a.de, fotos, a.idade, a.oculos, a.roupa)
+        r = pedir_influencer(
+            a.de,
+            fotos,
+            a.idade,
+            a.oculos,
+            a.roupa,
+            aparencia=a.aparencia,
+            corpo_midia=a.corpo_foto,
+            close=a.close,
+            corpo=a.corpo,
+        )
         print(json.dumps(r, ensure_ascii=False))
     elif a.cmd == "situacao":
         print(json.dumps(situacao(a.chave), ensure_ascii=False, indent=1, default=str))

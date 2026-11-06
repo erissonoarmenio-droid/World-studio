@@ -37,7 +37,7 @@ from typing import Any
 from app.config import obter_config
 from app.geracao.fornecedores.base import Fornecedor, Resposta
 from app.geracao.nos.base import No, Pedido
-from app.geracao.nos.envio import Aprovacao, RegistroEmMemoria, enviar
+from app.geracao.nos.envio import Aprovacao, Envio, enviar
 from app.geracao.nos.foto import EntradaFoto, Imagem, NoFoto
 from app.nucleo import midia
 from app.nucleo.db import sessao as abrir_sessao
@@ -107,6 +107,47 @@ def _aguardar(
     return resposta
 
 
+class RegistroDoTrabalho:
+    """Registro de envios guardado no próprio trabalho (`dados["envios"]`), no banco (E36, 06/11).
+
+    Se a tentativa cai (tempo esgotado, servidor reiniciado) depois de o fornecedor aceitar o
+    pedido, a próxima tentativa acha o id e só CONSULTA o mesmo lote — não paga duas vezes.
+    `vez` separa envios iguais de propósito (as 2 opções de uma foto são o mesmo pedido).
+    """
+
+    def __init__(self, trabalho_id: int, vez: int) -> None:
+        self.trabalho_id = trabalho_id
+        self.vez = vez
+
+    def _ler(self) -> dict[str, Any]:
+        with abrir_sessao() as s:
+            t = s.get(Trabalho, self.trabalho_id)
+            return dict((t.dados or {}).get("envios") or {}) if t else {}
+
+    def _gravar(self, envios: dict[str, Any]) -> None:
+        with abrir_sessao() as s:
+            t = s.get(Trabalho, self.trabalho_id, with_for_update=True)
+            if t is not None:
+                t.dados = {**(t.dados or {}), "envios": envios}
+
+    def _k(self, chave: str) -> str:
+        return f"{self.vez}:{chave[:32]}"
+
+    def obter(self, chave: str) -> Envio | None:
+        e = self._ler().get(self._k(chave))
+        return Envio(e["estado"], e.get("id")) if e else None
+
+    def guardar(self, chave: str, envio: Envio) -> None:
+        envios = self._ler()
+        envios[self._k(chave)] = {"estado": envio.estado, "id": envio.id_fornecedor}
+        self._gravar(envios)
+
+    def apagar(self, chave: str) -> None:
+        envios = self._ler()
+        envios.pop(self._k(chave), None)
+        self._gravar(envios)
+
+
 def _gerar(
     no: No,
     pedido: Pedido,
@@ -114,10 +155,12 @@ def _gerar(
     teto: Decimal,
     fornecedor: Fornecedor | None = None,
     maximo: float = ESPERA_MAXIMA,
+    vez: int = 0,
 ) -> Resposta:
     fornecedor = fornecedor or FORNECEDORES[pedido.fornecedor]()
     aprovacao = Aprovacao(por=f"loja:{trabalho.loja_id}", custo_max=teto)
-    resposta = enviar(no, pedido, aprovacao, fornecedor, RegistroEmMemoria())
+    registro = RegistroDoTrabalho(trabalho.id, vez)
+    resposta = enviar(no, pedido, aprovacao, fornecedor, registro)
     return _aguardar(fornecedor, resposta, trabalho.id, maximo)
 
 
@@ -161,8 +204,8 @@ def executar_foto_influencer(trabalho: Trabalho) -> Resultado:
 
     custo = Decimal("0")
     midias: list[int] = []
-    for _ in range(opcoes):
-        resposta = _gerar(no, pedido, trabalho, teto)
+    for vez in range(opcoes):
+        resposta = _gerar(no, pedido, trabalho, teto, vez=vez)
         custo += (
             Decimal(str(resposta.custo)) if resposta.custo is not None else pedido.custo_estimado
         )
@@ -219,8 +262,8 @@ def executar_video(trabalho: Trabalho) -> Resultado:
 
     custo = Decimal("0")
     midias: list[int] = []
-    for pedido in pedidos_prontos:
-        resposta = _gerar(no, pedido, trabalho, teto, fornecedor, ESPERA_MAXIMA_VIDEO)
+    for vez, pedido in enumerate(pedidos_prontos):
+        resposta = _gerar(no, pedido, trabalho, teto, fornecedor, ESPERA_MAXIMA_VIDEO, vez)
         custo += (
             Decimal(str(resposta.custo)) if resposta.custo is not None else pedido.custo_estimado
         )
@@ -302,8 +345,8 @@ def executar_foto_produto(trabalho: Trabalho) -> Resultado:
     )
     pedido, _ = no.preparar(entrada)
     midias: list[int] = []
-    for _ in range(opcoes):
-        resposta = _gerar(no, pedido, trabalho, teto)
+    for vez in range(opcoes):
+        resposta = _gerar(no, pedido, trabalho, teto, vez=vez)
         custo += _custo(resposta, pedido)
         for conteudo, tipo in _imagens_da_resposta(resposta)[:1]:
             midias.append(_guardar_imagem(trabalho.loja_id, conteudo, tipo, "resultado"))
@@ -347,7 +390,15 @@ def executar_influencer(trabalho: Trabalho) -> Resultado:
                 )
         ids = list(d.get("fotos_midia_ids") or [])[:6]
         fotos = [_imagem(loja, i) for i in ids]
-        entradas.append(EntradaInfluencer(modo="da_pessoa", fotos=fotos, **comum))
+        entradas.append(
+            EntradaInfluencer(
+                modo="da_pessoa",
+                fotos=fotos,
+                foto_corpo=_imagem(loja, d.get("corpo_midia_id")),
+                enquadramento=d.get("enquadramento", "corpo"),
+                **comum,
+            )
+        )
     elif modo == "vistas":
         anterior = _imagem(loja, d.get("anterior_midia_id"))
         for vista in ("close", "costas"):
@@ -365,8 +416,8 @@ def executar_influencer(trabalho: Trabalho) -> Resultado:
     teto = max(trabalho.custo_estimado or Decimal("0"), Decimal("0.40")) * FOLGA_APROVACAO
     custo = Decimal("0")
     midias: list[int] = []
-    for pedido in pedidos_prontos:
-        resposta = _gerar(no, pedido, trabalho, teto)
+    for vez, pedido in enumerate(pedidos_prontos):
+        resposta = _gerar(no, pedido, trabalho, teto, vez=vez)
         custo += _custo(resposta, pedido)
         for conteudo, tipo in _imagens_da_resposta(resposta)[:1]:
             midias.append(_guardar_imagem(loja, conteudo, tipo, "influencer"))

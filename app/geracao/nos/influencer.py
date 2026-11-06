@@ -34,6 +34,10 @@ FUNDO = (
     "arms at the sides, face sharp and fully visible, on a plain seamless white studio "
     "background, soft even daylight. "
 )
+CLOSE = (
+    "Close-up portrait from the chest up, facing the camera straight on, face sharp, large in "
+    "the frame and fully visible, on a plain seamless white background, soft even daylight. "
+)
 PELE = (
     "Photorealistic, looks like a real photo: natural skin texture with pores and slight "
     "imperfections, no beauty filter, no CGI look, true colours, no text, no logos, no "
@@ -55,7 +59,9 @@ class EntradaInfluencer(Entrada):
     corpo: str = Field(min_length=5)  # biótipo, puxado para as clientes da loja
     roupa: str = Field(min_length=10)  # neutra e justa, com o decote ("plain white crew-neck…")
     oculos: str = ""  # "black rectangular eyeglasses" (sem marca escrita)
-    fotos: list[Imagem] = Field(default_factory=list, max_length=6)  # da_pessoa: fotos da pessoa
+    fotos: list[Imagem] = Field(default_factory=list, max_length=6)  # da_pessoa: fotos do ROSTO
+    foto_corpo: Imagem | None = None  # da_pessoa: corpo inteiro real, só para o biótipo (E26)
+    enquadramento: Literal["corpo", "close"] = "corpo"  # da_pessoa: close 1º, aprovar (E5)
     anterior: Imagem | None = None  # ajuste / vista: a principal já gerada
     mudanca: str = ""  # ajuste: o que mudar
     vista: Literal["close", "costas"] | None = None
@@ -66,8 +72,14 @@ class EntradaInfluencer(Entrada):
             raise ValueError("influencer nova precisa da aparência descrita")
         if self.modo == "nova" and self.fotos:
             raise ValueError("influencer nova não usa foto de pessoa real")
-        if self.modo == "da_pessoa" and len(self.fotos) < 3:
-            raise ValueError("influencer da pessoa precisa de pelo menos 3 fotos dela")
+        if self.modo == "da_pessoa" and len(self.fotos) < 2:
+            raise ValueError("influencer da pessoa precisa de pelo menos 2 fotos do rosto dela")
+        if self.modo == "da_pessoa" and len(self.aparencia) < 40:
+            raise ValueError(
+                "influencer da pessoa precisa dos traços do rosto descritos (Fit Check, 06/11)"
+            )
+        if self.modo != "da_pessoa" and (self.foto_corpo or self.enquadramento != "corpo"):
+            raise ValueError("foto do corpo e close só no modo da_pessoa")
         if self.modo in ("ajuste", "vista") and self.anterior is None:
             raise ValueError("ajuste e vista partem da imagem principal anterior")
         if self.modo == "ajuste" and len(self.mudanca) < 5:
@@ -104,6 +116,7 @@ REGRAS = registrar(
             origem="Kit v2 — 24/10 (só a 1ª imagem chega ao vídeo)",
             checar=lambda p: (
                 _e(p).modo == "vista"
+                or _e(p).enquadramento == "close"  # âncora do rosto; a principal vem depois
                 or ("full-body" in _t(p) and "white" in _t(p) and "2k" in str(p.payload).lower())
             ),
         ),
@@ -147,6 +160,19 @@ REGRAS = registrar(
             origem="Teste do Eri 05/11 (desafio dos óculos)",
             checar=lambda p: not _e(p).oculos or "same eyeglasses" in _t(p),
         ),
+        Regra(
+            id="influencer.pessoa_pele_e_tracos",
+            nivel="bloqueia",
+            faca=(
+                "Rosto de pessoa real: traços descritos um a um e tom de pele travado como nas "
+                "fotos (nem mais pálido, nem mais oliva); fotos do rosto separadas do corpo."
+            ),
+            origem="06/11 — 1ª ficha do Eri: rosto mais fino e pele mais oliva (não parecido)",
+            checar=lambda p: (
+                _e(p).modo != "da_pessoa"
+                or ("skin tone exactly as in" in _t(p) and "key features to keep" in _t(p))
+            ),
+        ),
     ],
 )
 
@@ -176,10 +202,20 @@ class NoInfluencer(No):
                 imagens = list(e.fotos)
                 n = len(imagens)
                 quem = (
-                    f"Images 1 to {n} are photos of the same real {w} (identity reference, with "
-                    f"consent). Keep {seu} exact face, facial features, skin tone, hair and "
-                    f"body; ignore the backgrounds, the lighting and any text or logos in them."
+                    f"Images 1 to {n} are close-up photos of the same real {w}'s face (identity "
+                    f"reference, with consent). Reproduce this exact face so that anyone who knows "
+                    f"this person recognises the face at once. Key features to keep: "
+                    f"{e.aparencia.strip().rstrip('.')}. Keep {seu} skin tone exactly as in "
+                    f"images 1 to {n}, with the same warmth and natural redness; do not make it "
+                    f"paler, greyer, more olive or more tanned. Ignore the backgrounds, the colour "
+                    f"cast of the room lights and any text or logos in the photos."
                 )
+                if e.foto_corpo is not None:
+                    imagens.append(e.foto_corpo)
+                    quem += (
+                        f" Image {n + 1} shows {seu} real body: use it only for body build, "
+                        f"height and proportions, not for clothing, pose or background."
+                    )
             else:  # ajuste
                 assert e.anterior is not None
                 imagens = [e.anterior]
@@ -187,9 +223,10 @@ class NoInfluencer(No):
                     f"Image 1 = this exact {w}. Change ONLY this: {e.mudanca.strip().rstrip('.')}. "
                     f"Keep everything else exactly as in image 1."
                 )
+            fundo = CLOSE if e.enquadramento == "close" else FUNDO
             prompt = (
                 f"{quem} Body: {e.corpo.strip().rstrip('.')}. {ele} wears "
-                f"{e.roupa.strip().rstrip('.')}.{oculos}{idade} " + FUNDO + PELE
+                f"{e.roupa.strip().rstrip('.')}.{oculos}{idade} " + fundo + PELE
             )
         partes = [{"text": prompt}] + [
             {"inlineData": {"mimeType": i.mime, "data": i.dados_b64}} for i in imagens

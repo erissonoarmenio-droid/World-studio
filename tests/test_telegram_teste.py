@@ -77,11 +77,26 @@ def test_pedido_da_influencer_gera_homem_com_as_fotos(ambiente, ids):  # noqa: F
     t = TelegramFalso(eri, estranho)
     r = tt.importar(eri, t.chamar, t.baixar)
     fotos = [i for i, tipo, _ in r["midias"] if tipo == "influencer"]
-    p = tt.pedir_influencer(eri, fotos, 27, "black rectangular eyeglasses", "plain white tee")
+    p = tt.pedir_influencer(
+        eri,
+        fotos[:2],
+        27,
+        "black rectangular eyeglasses",
+        "plain white tee",
+        aparencia="a wide, softly rounded face with full cheeks and short dark stubble beard",
+        corpo_midia=fotos[2],
+        close=True,
+    )
     assert p["criado_agora"] is True
     with sessao() as s:
         trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
-        assert trabalho.dados["genero"] == "homem" and trabalho.dados["fotos_midia_ids"] == fotos
+        assert (
+            trabalho.dados["genero"] == "homem" and trabalho.dados["fotos_midia_ids"] == fotos[:2]
+        )
+        assert (
+            trabalho.dados["enquadramento"] == "close"
+            and trabalho.dados["corpo_midia_id"] == fotos[2]
+        )
         trabalho.estado = "rodando"  # o que o trabalhador faria ao pegar
         s.flush()
         s.expunge(trabalho)
@@ -91,4 +106,4 @@ def test_pedido_da_influencer_gera_homem_com_as_fotos(ambiente, ids):  # noqa: F
 
 def test_menos_de_3_fotos_nao_pede(ids):
     with pytest.raises(SystemExit):
-        tt.pedir_influencer(ids[0], [1, 2], 27, None, "plain white tee")
+        tt.pedir_influencer(ids[0], [1], 27, None, "plain white tee")

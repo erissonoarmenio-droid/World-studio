@@ -305,6 +305,7 @@ INFLUENCER = {
     "corpo": "tall and slim build",
     "roupa": "a plain white crew-neck t-shirt and black shorts",
     "oculos": "black rectangular eyeglasses",
+    "aparencia": "a wide, softly rounded face with full cheeks and short dark stubble beard",
 }
 
 
@@ -372,3 +373,30 @@ def test_vistas_geram_close_e_costas(ambiente):
     _, trabalho = preparar_influencer("Inf Vistas", modo="vistas")
     resultado = executores.executar_tipo_foto(trabalho)
     assert ambiente.envios == 2 and len(resultado.dados["midias"]) == 2
+
+
+def test_lote_aceito_e_tentativa_caida_nao_paga_duas_vezes(ambiente, monkeypatch):
+    """E36 (06/11): a nova tentativa retoma o MESMO lote pelo id guardado no trabalho."""
+    _, trabalho = preparar_influencer("Inf E36", modo="nova", aparencia="short dark wavy hair")
+    consultas_que_caem = {"n": 1}
+    original = ambiente.consultar
+
+    def consultar(id_trabalho):
+        if consultas_que_caem["n"]:
+            consultas_que_caem["n"] -= 1
+            raise TimeoutError("caiu esperando o lote")
+        return original(id_trabalho)
+
+    monkeypatch.setattr(ambiente, "consultar", consultar)
+    with pytest.raises(TimeoutError):
+        executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 1
+    with sessao() as s:
+        envios = s.get(Trabalho, trabalho.id).dados["envios"]
+    assert [e["id"] for e in envios.values()] == ["lote-1"]
+
+    with sessao() as s:  # o trabalhador relê o trabalho na nova tentativa
+        trabalho = s.get(Trabalho, trabalho.id)
+        s.expunge(trabalho)
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 1 and len(resultado.dados["midias"]) == 1
