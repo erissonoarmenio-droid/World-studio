@@ -222,6 +222,38 @@ def pedir_influencer(
         return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
 
 
+def pedir_foto(
+    telegram_id: int,
+    influencer_midia: int,
+    peca_midias: list[int],
+    entrada: dict[str, Any],
+    opcoes: int = 2,
+    chave: str | None = None,
+) -> dict[str, Any]:
+    """Foto da influencer vestindo a peça (item "foto", 2 opções). É o passo que GASTA."""
+    from app.nucleo.pessoas import obter_pessoa_por_telegram
+    from app.pedidos import criar_pedido
+
+    with sessao() as s:
+        pessoa = obter_pessoa_por_telegram(s, telegram_id)
+        if pessoa is None:
+            raise SystemExit("rode o importar primeiro")
+        situacao, criado = criar_pedido(
+            s,
+            loja_id=pessoa.loja_id,
+            item="foto",
+            dados={
+                "entrada": entrada,
+                "influencer_midia_id": influencer_midia,
+                "peca_midia_ids": peca_midias,
+                "opcoes": opcoes,
+            },
+            chave_unica=chave or f"teste-eri-foto-{uuid.uuid4().hex[:8]}",
+            autor=Autor("pessoa", pessoa.id),
+        )
+        return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
+
+
 def situacao(chave: str) -> dict[str, Any]:
     from sqlalchemy import select
 
@@ -305,6 +337,12 @@ def main(argv: list[str] | None = None) -> int:
     inf.add_argument("--corpo-foto", type=int, help="mídia do corpo inteiro (só biótipo)")
     inf.add_argument("--corpo", default="same build and proportions as in the reference photos")
     inf.add_argument("--close", action="store_true", help="1º o close do rosto (E5)")
+    fo = sub.add_parser("foto")
+    fo.add_argument("--de", type=int, required=True)
+    fo.add_argument("--influencer", type=int, required=True, help="mídia do rosto aprovado")
+    fo.add_argument("--peca-fotos", required=True, help="mídias da peça, por vírgula")
+    fo.add_argument("--entrada", required=True, help="arquivo JSON com os campos da foto")
+    fo.add_argument("--opcoes", type=int, default=2)
     sit = sub.add_parser("situacao")
     sit.add_argument("chave")
     dev = sub.add_parser("devolver")
@@ -330,6 +368,11 @@ def main(argv: list[str] | None = None) -> int:
             corpo=a.corpo,
         )
         print(json.dumps(r, ensure_ascii=False))
+    elif a.cmd == "foto":
+        with open(a.entrada, encoding="utf-8") as f:
+            entrada = json.load(f)
+        pecas = [int(x) for x in a.peca_fotos.split(",") if x.strip()]
+        print(json.dumps(pedir_foto(a.de, a.influencer, pecas, entrada, a.opcoes)))
     elif a.cmd == "situacao":
         print(json.dumps(situacao(a.chave), ensure_ascii=False, indent=1, default=str))
     elif a.cmd == "devolver":

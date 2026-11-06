@@ -107,3 +107,27 @@ def test_pedido_da_influencer_gera_homem_com_as_fotos(ambiente, ids):  # noqa: F
 def test_menos_de_3_fotos_nao_pede(ids):
     with pytest.raises(SystemExit):
         tt.pedir_influencer(ids[0], [1], 27, None, "plain white tee")
+
+
+def test_pedido_de_foto_com_a_peca(ambiente, ids):  # noqa: F811
+    eri, estranho = ids
+    t = TelegramFalso(eri, estranho)
+    r = tt.importar(eri, t.chamar, t.baixar)
+    fotos = [i for i, tipo, _ in r["midias"] if tipo == "influencer"]
+    entrada = {
+        "genero": "homem",
+        "idade": 26,
+        "tracos": "a wide, softly rounded face with full cheeks",
+        "corpo": "slim, tall build",
+        "peca": "He wears a grey chambray short-sleeve shirt with an embroidered band.",
+        "cenario": "a small menswear boutique",
+        "cena": "SCENE: standing by the rack, relaxed.",
+    }
+    p = tt.pedir_foto(eri, fotos[0], fotos[1:3], entrada)
+    with sessao() as s:
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
+        trabalho.estado = "rodando"
+        s.flush()
+        s.expunge(trabalho)
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 2 and len(resultado.dados["midias"]) == 2

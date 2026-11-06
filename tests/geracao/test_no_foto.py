@@ -103,3 +103,19 @@ def test_homem_troca_pronomes_e_passa_nas_regras():
 
     assert not re.search(r"\b(she|her|herself|woman)\b", pedido_h.prompt, re.I)
     assert "the same man" in pedido_h.prompt.lower()
+
+
+def test_foto_da_peca_real_e_tracos_do_rosto():
+    """06/11: a peça ia só por texto; agora a foto da peça entra como imagem (Fit Check)."""
+    import re
+
+    p, rel = NoFoto().preparar(
+        entrada("c2", genero="homem", tracos="a wide, softly rounded face", peca_fotos=[REF, REF])
+    )
+    assert not rel.bloqueado, rel.resumo()
+    t = p.prompt
+    assert "Images 3 to 4 = photos of the real garment" in t  # 1 rosto, 2 âncora, 3–4 peça
+    assert "person from image 1" in t and "embroidery or print" in t
+    assert "Key features to keep: a wide, softly rounded face" in t and "more olive" in t
+    assert not re.search(r"\b(she|her|woman)\b", t, re.I)
+    assert len(p.payload["contents"][0]["parts"]) == 5

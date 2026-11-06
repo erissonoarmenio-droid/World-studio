@@ -196,6 +196,7 @@ def executar_foto_influencer(trabalho: Trabalho) -> Resultado:
         influencer=_imagem(trabalho.loja_id, d["influencer_midia_id"]),
         ancora=_imagem(trabalho.loja_id, d.get("ancora_midia_id")),
         cenario_foto=_imagem(trabalho.loja_id, d.get("cenario_midia_id")),
+        peca_fotos=[_imagem(trabalho.loja_id, i) for i in (d.get("peca_midia_ids") or [])[:3]],
     )
     no = NoFoto()
     pedido, _ = no.preparar(entrada)  # PedidoBloqueado aqui: nada foi gasto

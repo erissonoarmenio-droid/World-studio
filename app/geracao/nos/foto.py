@@ -47,6 +47,10 @@ class EntradaFoto(Entrada):
     e_ancora: bool = False  # é a foto âncora (close do rosto) da série
     ancora: Imagem | None = None  # Image 2: a âncora já aprovada pelo juiz
     cenario_foto: Imagem | None = None  # foto do lugar enviada pela loja (fica igual)
+    # 06/11: foto(s) da peça real (inteira + detalhe). Antes a peça ia só por texto.
+    peca_fotos: list[Imagem] = Field(default_factory=list, max_length=3)
+    # 06/11: traços do rosto da pessoa real (Fit Check); trava também o tom de pele.
+    tracos: str = ""
     tamanho: Tamanho = "1K"
 
     @model_validator(mode="after")
@@ -157,13 +161,20 @@ class NoFoto(No):
 
     def montar_pedido(self, entrada: EntradaFoto, fornecedor: str = "google") -> Pedido:
         cabelo = f"hair ({entrada.aparencia})" if entrada.aparencia else "hair"
+        tracos = (
+            f" Key features to keep: {entrada.tracos.strip().rstrip('.')}. Keep her skin tone "
+            "exactly as in image 1, with the same warmth and natural redness; do not make it "
+            "paler, greyer, more olive or more tanned."
+            if entrada.tracos
+            else ""
+        )
         if entrada.corpo:
             corpo = entrada.corpo.strip().rstrip(".")
             mantem = f"Keep her exact face, skin, {cabelo} and age. Body: {corpo}."
         else:
             mantem = f"Keep her exact face, skin, {cabelo}, body and age."
         base = (
-            f"Image 1 = the woman (identity reference). {mantem} "
+            f"Image 1 = the woman (identity reference). {mantem}{tracos} "
             f"{REALISMO} {entrada.peca.strip()} "
             f"Setting: {entrada.cenario.strip().rstrip('.')}."
         )
@@ -175,6 +186,16 @@ class NoFoto(No):
                 "(same furniture, walls, mirrors and light); mirror reflections show only the "
                 "empty room, no people."
             )
+        if entrada.peca_fotos:
+            n = 2 + (entrada.ancora is not None) + (entrada.cenario_foto is not None)
+            ultimas = n + len(entrada.peca_fotos) - 1
+            quais = f"Image {n}" if n == ultimas else f"Images {n} to {ultimas}"
+            ancora += (
+                f" {quais} = photos of the real garment: reproduce this exact garment on the "
+                "person from image 1 (same colour, fabric, collar, buttons, sleeves, and any "
+                "embroidery or print with the same pattern, colours, width and position); do not simplify, "
+                "redesign or move any detail; ignore the surface it lies on."
+            )
         idade = (
             f" She is {entrada.idade} years old; keep her youthful {entrada.idade}-year-old "
             "face, do not age her. "
@@ -182,6 +203,7 @@ class NoFoto(No):
         prompt = para_genero(base + ancora + idade + entrada.cena.strip(), entrada.genero)
         imagens = [entrada.influencer] + ([entrada.ancora] if entrada.ancora else [])
         imagens += [entrada.cenario_foto] if entrada.cenario_foto else []
+        imagens += list(entrada.peca_fotos)
         partes = [{"text": prompt}] + [
             {"inlineData": {"mimeType": i.mime, "data": i.dados_b64}} for i in imagens
         ]
