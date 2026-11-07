@@ -131,3 +131,45 @@ def test_pedido_de_foto_com_a_peca(ambiente, ids):  # noqa: F811
         s.expunge(trabalho)
     resultado = executores.executar_tipo_foto(trabalho)
     assert ambiente.envios == 2 and len(resultado.dados["midias"]) == 2
+
+
+def test_foto_com_trava_do_rosto_faz_2_passadas_por_opcao(ambiente, ids):  # noqa: F811
+    eri, estranho = ids
+    t = TelegramFalso(eri, estranho)
+    r = tt.importar(eri, t.chamar, t.baixar)
+    fotos = [i for i, tipo, _ in r["midias"] if tipo == "influencer"]
+    entrada = {
+        "genero": "homem",
+        "idade": 26,
+        "tracos": "a wide, softly rounded face with full cheeks and a broad, rounded jaw",
+        "corpo": "tall build",
+        "peca": "He wears a grey chambray short-sleeve shirt with an embroidered band.",
+        "cenario": "a small menswear boutique",
+        "cena": "SCENE: standing by the rack, relaxed.",
+    }
+    p = tt.pedir_foto(eri, fotos[0], fotos[1:2], entrada, rostos=fotos[1:3], oculos="black")
+    with sessao() as s:
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
+        trabalho.estado = "rodando"
+        s.flush()
+        s.expunge(trabalho)
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 4  # 2 cenas + 2 travas
+    assert len(resultado.dados["midias"]) == 2 and len(resultado.dados["antes_da_trava"]) == 2
+
+
+def test_trava_avulsa_numa_foto_pronta(ambiente, ids):  # noqa: F811
+    eri, estranho = ids
+    t = TelegramFalso(eri, estranho)
+    r = tt.importar(eri, t.chamar, t.baixar)
+    fotos = [i for i, tipo, _ in r["midias"] if tipo == "influencer"]
+    p = tt.travar_rosto(
+        eri, fotos[0], fotos[1:3], "a wide, softly rounded face with full cheeks and wide jaw"
+    )
+    with sessao() as s:
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
+        trabalho.estado = "rodando"
+        s.flush()
+        s.expunge(trabalho)
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 1 and resultado.dados["no"] == "rosto_fixo"

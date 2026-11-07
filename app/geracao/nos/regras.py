@@ -14,7 +14,18 @@ from collections.abc import Sequence
 
 from app.geracao.nos.base import Regra
 
-NOS_CONHECIDOS = ("video", "video_ugc", "voz", "foto", "foto_produto", "juiz", "vestir", "lipsync")
+NOS_CONHECIDOS = (
+    "video",
+    "video_ugc",
+    "voz",
+    "foto",
+    "foto_produto",
+    "juiz",
+    "vestir",
+    "lipsync",
+    "influencer",
+    "rosto_fixo",
+)
 _REGISTRO: dict[str, tuple[Regra, ...]] = {}
 
 

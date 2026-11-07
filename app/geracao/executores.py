@@ -200,31 +200,72 @@ def executar_foto_influencer(trabalho: Trabalho) -> Resultado:
     )
     no = NoFoto()
     pedido, _ = no.preparar(entrada)  # PedidoBloqueado aqui: nada foi gasto
-    estimado = trabalho.custo_estimado or pedido.custo_estimado * opcoes
-    teto = estimado * FOLGA_APROVACAO / opcoes  # teto por envio
+
+    # Trava do rosto (06/11): pessoa real → 2ª passada só no rosto, com as fotos reais.
+    trava = _preparar_trava(trabalho, d, entrada)
+    chamadas = 2 if trava else 1
+    estimado = trabalho.custo_estimado or pedido.custo_estimado * opcoes * chamadas
+    teto = estimado * FOLGA_APROVACAO / (opcoes * chamadas)  # teto por envio
 
     custo = Decimal("0")
     midias: list[int] = []
+    antes: list[int] = []
     for vez in range(opcoes):
         resposta = _gerar(no, pedido, trabalho, teto, vez=vez)
-        custo += (
-            Decimal(str(resposta.custo)) if resposta.custo is not None else pedido.custo_estimado
-        )
+        custo += _custo(resposta, pedido)
         for conteudo, tipo in _imagens_da_resposta(resposta)[:1]:
-            with abrir_sessao() as s:
-                m = midia.enviar(
-                    s,
-                    loja_id=trabalho.loja_id,
-                    conteudo=conteudo,
-                    tipo="resultado",
-                    content_type=tipo,
-                    origem="geracao",
-                    autor=SISTEMA,
-                )
-                midias.append(m.id)
+            if trava is None:
+                midias.append(_guardar_imagem(trabalho.loja_id, conteudo, tipo, "resultado"))
+                continue
+            antes.append(_guardar_imagem(trabalho.loja_id, conteudo, tipo, "outro"))
+            final, gasto = _travar_rosto(trabalho, trava, conteudo, tipo, teto, 100 + vez)
+            custo += gasto
+            midias.append(final)
     if not midias:
         raise RuntimeError("o fornecedor terminou sem nenhuma imagem")
-    return Resultado({"midias": midias, "no": no.nome}, custo)
+    dados: dict[str, Any] = {"midias": midias, "no": no.nome}
+    if trava is not None:
+        dados["antes_da_trava"] = antes
+    return Resultado(dados, custo)
+
+
+def _exigir_clone(pessoa_id: int | None) -> None:
+    from app.nucleo.consentimentos import consentimento_ativo
+
+    with abrir_sessao() as s:
+        if pessoa_id is None or consentimento_ativo(s, pessoa_id, "clone") is None:
+            raise PermissionError("rosto de pessoa real só com o consentimento 'clone' dela")
+
+
+def _preparar_trava(trabalho: Trabalho, d: dict[str, Any], entrada: EntradaFoto) -> Any:
+    """Entrada do nó rosto_fixo (sem a base) ou None quando não há rosto real."""
+    ids = list(d.get("rostos_reais_midia_ids") or [])[:4]
+    if not ids:
+        return None
+    _exigir_clone(d.get("pessoa_id"))
+    return {
+        "rostos": [_imagem(trabalho.loja_id, i) for i in ids],
+        "tracos": entrada.tracos,
+        "oculos": d.get("oculos", ""),
+        "formato": "9:16",
+    }
+
+
+def _travar_rosto(
+    trabalho: Trabalho, trava: dict[str, Any], conteudo: bytes, tipo: str, teto: Decimal, vez: int
+) -> tuple[int, Decimal]:
+    from app.geracao.nos.rosto_fixo import EntradaRostoFixo, NoRostoFixo
+
+    mime = tipo if tipo in ("image/jpeg", "image/png") else "image/png"
+    base = Imagem(mime=mime, dados_b64=base64.b64encode(conteudo).decode())
+    no = NoRostoFixo()
+    pedido, _ = no.preparar(EntradaRostoFixo(base=base, **trava))
+    resposta = _gerar(no, pedido, trabalho, teto, vez=vez)
+    imagens = _imagens_da_resposta(resposta)
+    if not imagens:
+        raise RuntimeError("a trava do rosto terminou sem imagem")
+    final = _guardar_imagem(trabalho.loja_id, imagens[0][0], imagens[0][1], "resultado")
+    return final, _custo(resposta, pedido)
 
 
 ESPERA_MAXIMA_VIDEO = 45 * 60  # 720p na fila da Tein: 20–40 min (01/11)
@@ -375,6 +416,21 @@ def executar_influencer(trabalho: Trabalho) -> Resultado:
 
     d: dict[str, Any] = dict(trabalho.dados)
     modo = d.pop("modo")
+    if modo == "rosto_fixo":  # 06/11: trava o rosto de uma foto já gerada (item ajuste_rosto)
+        trava = {
+            "rostos": [_imagem(trabalho.loja_id, i) for i in d["rostos_reais_midia_ids"][:4]],
+            "tracos": d["tracos"],
+            "oculos": d.get("oculos", ""),
+            "formato": d.get("formato", "9:16"),
+        }
+        _exigir_clone(d.get("pessoa_id"))
+        base = _imagem(trabalho.loja_id, d["base_midia_id"])
+        assert base is not None
+        teto = max(trabalho.custo_estimado or Decimal("0"), Decimal("0.04")) * FOLGA_APROVACAO
+        final, gasto = _travar_rosto(
+            trabalho, trava, base64.b64decode(base.dados_b64), base.mime, teto, 0
+        )
+        return Resultado({"midias": [final], "no": "rosto_fixo", "modo": modo}, gasto)
     comum = {
         k: d[k]
         for k in ("genero", "idade", "corpo", "roupa", "aparencia", "oculos", "mudanca")

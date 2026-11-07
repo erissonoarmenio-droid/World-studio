@@ -78,8 +78,8 @@ class CustoFornecedor:
 # Fotos: 2 opções × US$ 0,04 (preço direto do nó `foto`, de propósito pelo lado alto; no modo
 # lote o Google cobra metade, ~US$ 0,04 no total).
 CUSTO_FORNECEDOR: dict[str, CustoFornecedor] = {
-    "foto": CustoFornecedor("google", Decimal("0.08")),
-    "foto_outro_corpo": CustoFornecedor("google", Decimal("0.08")),
+    "foto": CustoFornecedor("google", Decimal("0.16")),  # 2 opções × (cena + trava do rosto)
+    "foto_outro_corpo": CustoFornecedor("google", Decimal("0.16")),
     "foto_produto": CustoFornecedor("google", Decimal("0.08")),
     "arte": CustoFornecedor("google", Decimal("0.03")),
     "video_480": CustoFornecedor("tein", Decimal("2.15")),

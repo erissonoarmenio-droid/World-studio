@@ -229,8 +229,11 @@ def pedir_foto(
     entrada: dict[str, Any],
     opcoes: int = 2,
     chave: str | None = None,
+    rostos: list[int] | None = None,
+    oculos: str = "",
 ) -> dict[str, Any]:
-    """Foto da influencer vestindo a peça (item "foto", 2 opções). É o passo que GASTA."""
+    """Foto da influencer vestindo a peça (item "foto", 2 opções). É o passo que GASTA.
+    Com `rostos` (fotos reais), cada opção passa pela trava do rosto (nó rosto_fixo)."""
     from app.nucleo.pessoas import obter_pessoa_por_telegram
     from app.pedidos import criar_pedido
 
@@ -247,8 +250,40 @@ def pedir_foto(
                 "influencer_midia_id": influencer_midia,
                 "peca_midia_ids": peca_midias,
                 "opcoes": opcoes,
+                "rostos_reais_midia_ids": rostos or [],
+                "pessoa_id": pessoa.id,
+                "oculos": oculos,
             },
             chave_unica=chave or f"teste-eri-foto-{uuid.uuid4().hex[:8]}",
+            autor=Autor("pessoa", pessoa.id),
+        )
+        return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
+
+
+def travar_rosto(
+    telegram_id: int, base: int, rostos: list[int], tracos: str, oculos: str = ""
+) -> dict[str, Any]:
+    """Trava o rosto de uma foto já gerada (item ajuste_rosto, modo rosto_fixo). GASTA."""
+    from app.nucleo.pessoas import obter_pessoa_por_telegram
+    from app.pedidos import criar_pedido
+
+    with sessao() as s:
+        pessoa = obter_pessoa_por_telegram(s, telegram_id)
+        if pessoa is None:
+            raise SystemExit("rode o importar primeiro")
+        situacao, criado = criar_pedido(
+            s,
+            loja_id=pessoa.loja_id,
+            item="ajuste_rosto",
+            dados={
+                "modo": "rosto_fixo",
+                "base_midia_id": base,
+                "rostos_reais_midia_ids": rostos,
+                "tracos": tracos,
+                "oculos": oculos,
+                "pessoa_id": pessoa.id,
+            },
+            chave_unica=f"teste-eri-rosto-{uuid.uuid4().hex[:8]}",
             autor=Autor("pessoa", pessoa.id),
         )
         return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
@@ -343,6 +378,14 @@ def main(argv: list[str] | None = None) -> int:
     fo.add_argument("--peca-fotos", required=True, help="mídias da peça, por vírgula")
     fo.add_argument("--entrada", required=True, help="arquivo JSON com os campos da foto")
     fo.add_argument("--opcoes", type=int, default=2)
+    fo.add_argument("--rostos", default="", help="fotos REAIS do rosto (trava), por vírgula")
+    fo.add_argument("--oculos", default="")
+    ro = sub.add_parser("rosto")
+    ro.add_argument("--de", type=int, required=True)
+    ro.add_argument("--base", type=int, required=True, help="foto gerada a corrigir")
+    ro.add_argument("--rostos", required=True, help="fotos REAIS do rosto, por vírgula")
+    ro.add_argument("--tracos-arquivo", required=True)
+    ro.add_argument("--oculos", default="")
     sit = sub.add_parser("situacao")
     sit.add_argument("chave")
     dev = sub.add_parser("devolver")
@@ -372,7 +415,14 @@ def main(argv: list[str] | None = None) -> int:
         with open(a.entrada, encoding="utf-8") as f:
             entrada = json.load(f)
         pecas = [int(x) for x in a.peca_fotos.split(",") if x.strip()]
-        print(json.dumps(pedir_foto(a.de, a.influencer, pecas, entrada, a.opcoes)))
+        rostos = [int(x) for x in a.rostos.split(",") if x.strip()]
+        r = pedir_foto(a.de, a.influencer, pecas, entrada, a.opcoes, rostos=rostos, oculos=a.oculos)
+        print(json.dumps(r))
+    elif a.cmd == "rosto":
+        with open(a.tracos_arquivo, encoding="utf-8") as f:
+            tracos = f.read().strip()
+        rostos = [int(x) for x in a.rostos.split(",") if x.strip()]
+        print(json.dumps(travar_rosto(a.de, a.base, rostos, tracos, a.oculos)))
     elif a.cmd == "situacao":
         print(json.dumps(situacao(a.chave), ensure_ascii=False, indent=1, default=str))
     elif a.cmd == "devolver":
