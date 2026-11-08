@@ -11,7 +11,17 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from app.geracao.nos.base import Entrada, Genero, No, Pedido, Regra, normalizar_texto, para_genero
+from app.geracao.nos.base import (
+    Entrada,
+    Genero,
+    No,
+    Pedido,
+    Regra,
+    idade_real,
+    normalizar_texto,
+    para_genero,
+    tem_palavra_de_idade,
+)
 from app.geracao.nos.regras import registrar
 
 MODELO = "gemini-nano-banana-2.1"
@@ -57,6 +67,10 @@ class EntradaFoto(Entrada):
     def _ancora_coerente(self) -> EntradaFoto:
         if self.e_ancora and self.ancora is not None:
             raise ValueError("a foto âncora não leva outra âncora")
+        if self.tracos and (w := tem_palavra_de_idade(self.tracos)):
+            raise ValueError(
+                f"traços da pessoa real sem idade ou rugas ('{w}'): a idade vem das fotos (E42)"
+            )
         return self
 
 
@@ -107,9 +121,16 @@ REGRAS = registrar(
         Regra(
             id="foto.idade_escrita",
             nivel="bloqueia",
-            faca='Escrever a idade no prompt ("She is N years old ... do not age her").',
-            origem="E5 — 29/10 (com idade escrita: 26–28 contra referência ~27)",
-            checar=lambda p: f"{p.entrada.idade} years old" in _texto(p),
+            faca=(
+                'Escrever a idade no prompt ("She is N years old ... do not age her"). Pessoa '
+                "real (com traços): nunca o número; mesma idade aparente da imagem 1 (E42)."
+            ),
+            origem="E5 — 29/10 (com idade escrita: 26–28 contra referência ~27) + E42 — 07/11",
+            checar=lambda p: (
+                ("same apparent age" in _texto(p) and "years old" not in _texto(p))
+                if p.entrada.tracos
+                else f"{p.entrada.idade} years old" in _texto(p)
+            ),
         ),
         Regra(
             id="foto.cinco_dedos_nas_maos",
@@ -197,8 +218,12 @@ class NoFoto(No):
                 "simplify, redesign or move any detail; ignore the surface it lies on."
             )
         idade = (
-            f" She is {entrada.idade} years old; keep her youthful {entrada.idade}-year-old "
-            "face, do not age her. "
+            idade_real("image 1")
+            if entrada.tracos  # pessoa real: a idade vem das fotos, nunca o número (E42)
+            else (
+                f" She is {entrada.idade} years old; keep her youthful {entrada.idade}-year-old "
+                "face, do not age her. "
+            )
         )
         prompt = para_genero(base + ancora + idade + entrada.cena.strip(), entrada.genero)
         imagens = [entrada.influencer] + ([entrada.ancora] if entrada.ancora else [])

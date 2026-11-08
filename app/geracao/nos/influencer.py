@@ -20,7 +20,16 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from app.geracao.nos.base import Entrada, No, Pedido, Regra, normalizar_texto
+from app.geracao.nos.base import (
+    Entrada,
+    No,
+    Pedido,
+    Regra,
+    idade_real,
+    normalizar_texto,
+    para_genero,
+    tem_palavra_de_idade,
+)
 from app.geracao.nos.foto import Imagem
 from app.geracao.nos.regras import registrar
 
@@ -78,6 +87,10 @@ class EntradaInfluencer(Entrada):
             raise ValueError(
                 "influencer da pessoa precisa dos traços do rosto descritos (Fit Check, 06/11)"
             )
+        if self.modo == "da_pessoa" and (w := tem_palavra_de_idade(self.aparencia)):
+            raise ValueError(
+                f"traços da pessoa real sem idade ou rugas ('{w}'): a idade vem das fotos (E42)"
+            )
         if self.modo != "da_pessoa" and (self.foto_corpo or self.enquadramento != "corpo"):
             raise ValueError("foto do corpo e close só no modo da_pessoa")
         if self.modo in ("ajuste", "vista") and self.anterior is None:
@@ -123,9 +136,16 @@ REGRAS = registrar(
         Regra(
             id="influencer.idade_escrita",
             nivel="bloqueia",
-            faca="Escrever a idade (adulta, nunca aparência de menor).",
-            origem="E5 — 29/10 + recusas do Atendente (sempre adulta)",
-            checar=lambda p: f"{_e(p).idade} years old" in _t(p),
+            faca=(
+                "Escrever a idade (adulta, nunca aparência de menor). Pessoa real: nunca o "
+                "número; 'mesma idade aparente das fotos reais' (E42)."
+            ),
+            origem="E5 — 29/10 + recusas do Atendente (sempre adulta) + E42 — 07/11",
+            checar=lambda p: (
+                ("same apparent age" in _t(p) and "years old" not in _t(p))
+                if _e(p).modo == "da_pessoa"
+                else f"{_e(p).idade} years old" in _t(p)
+            ),
         ),
         Regra(
             id="influencer.roupa_com_decote",
@@ -201,6 +221,7 @@ class NoInfluencer(No):
             elif e.modo == "da_pessoa":
                 imagens = list(e.fotos)
                 n = len(imagens)
+                idade = para_genero(idade_real(f"images 1 to {n}"), e.genero).rstrip()
                 quem = (
                     f"Images 1 to {n} are close-up photos of the same real {w}'s face (identity "
                     f"reference, with consent). Reproduce this exact face so that anyone who knows "

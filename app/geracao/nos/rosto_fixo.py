@@ -18,9 +18,19 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
-from app.geracao.nos.base import Entrada, No, Pedido, Regra, normalizar_texto
+from app.geracao.nos.base import (
+    Entrada,
+    Genero,
+    No,
+    Pedido,
+    Regra,
+    idade_real,
+    normalizar_texto,
+    para_genero,
+    tem_palavra_de_idade,
+)
 from app.geracao.nos.foto import Imagem
 from app.geracao.nos.regras import registrar
 
@@ -35,6 +45,15 @@ class EntradaRostoFixo(Entrada):
     oculos: str = ""
     formato: Literal["9:16", "3:4"] = "9:16"
     tamanho: Literal["1K", "2K"] = "1K"
+    genero: Genero = "mulher"
+
+    @model_validator(mode="after")
+    def _sem_idade(self) -> EntradaRostoFixo:
+        if w := tem_palavra_de_idade(self.tracos):
+            raise ValueError(
+                f"traços da pessoa real sem idade ou rugas ('{w}'): a idade vem das fotos (E42)"
+            )
+        return self
 
 
 def _t(p: Pedido) -> str:
@@ -73,6 +92,13 @@ REGRAS = registrar(
             ),
         ),
         Regra(
+            id="rosto_fixo.idade_real",
+            nivel="bloqueia",
+            faca="Mesma idade aparente das fotos reais; nunca número de idade nem rugas (E42).",
+            origem="E42 — 07/11 (pessoa 3 saiu bem mais velha com '42 years old')",
+            checar=lambda p: "same apparent age" in _t(p) and "years old" not in _t(p),
+        ),
+        Regra(
             id="rosto_fixo.mesmo_formato",
             nivel="bloqueia",
             faca="Mesmo formato da foto de entrada (não recompor o quadro).",
@@ -105,12 +131,14 @@ class NoRostoFixo(No):
             "in the real photos: not slimmer and not wider, not longer and not rounder, no "
             "beautifying; keep the head size in proportion to the body exactly as in image 1. "
             "Keep the skin tone exactly as "
-            f"in images 2 to {n}, with the same warmth and natural redness.{oculos} Keep "
+            f"in images 2 to {n}, with the same warmth and natural redness."
+            f"{idade_real(f'images 2 to {n}').rstrip()}{oculos} Keep "
             "everything else in image 1 identical: hair, clothing and every detail of the "
             "garment, pose, hands, body, background, lighting, colours, framing and camera "
             "angle. Same expression direction and head position as in image 1. Photorealistic, "
             "natural skin texture, no beauty filter, no text, no logos."
         )
+        prompt = para_genero(prompt, e.genero)
         imagens = [e.base, *e.rostos]
         partes = [{"text": prompt}] + [
             {"inlineData": {"mimeType": i.mime, "data": i.dados_b64}} for i in imagens

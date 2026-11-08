@@ -258,6 +258,7 @@ def _preparar_trava(trabalho: Trabalho, d: dict[str, Any], entrada: EntradaFoto)
         "tracos": entrada.tracos,
         "oculos": d.get("oculos", ""),
         "formato": "9:16",
+        "genero": entrada.genero,
     }
 
 
@@ -464,6 +465,7 @@ def executar_influencer(trabalho: Trabalho) -> Resultado:
             "tracos": d["tracos"],
             "oculos": d.get("oculos", ""),
             "formato": d.get("formato", "9:16"),
+            "genero": d.get("genero", "mulher"),
         }
         _exigir_clone(d.get("pessoa_id"))
         base = _imagem(trabalho.loja_id, d["base_midia_id"])

@@ -168,6 +168,41 @@ def para_genero(texto: str, genero: str) -> str:
     )
 
 
+# E42 (07/11): com pessoa real, o número da idade ("42 years old") e frases como "expression
+# lines of a woman in her forties" envelhecem o rosto (saiu bem mais velha que a foto real).
+# Regra: com pessoa real, idade = "a mesma idade aparente das fotos reais", nunca número.
+PALAVRAS_DE_IDADE = (
+    "years old",
+    "year-old",
+    "twenties",
+    "thirties",
+    "forties",
+    "fifties",
+    "sixties",
+    "wrinkle",
+    "expression line",
+    "crow's feet",
+    "aged ",
+    "ageing",
+    "aging",
+    "mature",
+)
+
+
+def idade_real(onde: str) -> str:
+    """Trava da idade aparente para pessoa real (E42). `onde` = "images 2 to 4", "image 1"…"""
+    return (
+        f" She looks exactly the same apparent age as in {onde}: do not make her look older, "
+        "no extra wrinkles, no deeper expression lines, no eye bags, no sagging skin, no grey "
+        f"hair; same skin smoothness and texture as in {onde}. "
+    )
+
+
+def tem_palavra_de_idade(texto: str) -> str | None:
+    t = texto.lower()
+    return next((w.strip() for w in PALAVRAS_DE_IDADE if w in t), None)
+
+
 class No:
     """Base dos nós. Cada nó define `nome`, `regras` e `montar_pedido`."""
 

@@ -264,6 +264,7 @@ def travar_rosto(
     tracos: str,
     oculos: str = "",
     pessoa_id: int | None = None,
+    genero: str = "mulher",
 ) -> dict[str, Any]:
     """Trava o rosto de uma foto já gerada (item ajuste_rosto, modo rosto_fixo). GASTA."""
     from app.pedidos import criar_pedido
@@ -281,6 +282,7 @@ def travar_rosto(
                 "tracos": tracos,
                 "oculos": oculos,
                 "pessoa_id": pessoa.id,
+                "genero": genero,
             },
             chave_unica=f"teste-eri-rosto-{uuid.uuid4().hex[:8]}",
             autor=Autor("pessoa", pessoa.id),
@@ -417,6 +419,7 @@ def main(argv: list[str] | None = None) -> int:
     ro.add_argument("--rostos", required=True, help="fotos REAIS do rosto, por vírgula")
     ro.add_argument("--tracos-arquivo", required=True)
     ro.add_argument("--oculos", default="")
+    ro.add_argument("--genero", default="homem", choices=["homem", "mulher"])
     pe = sub.add_parser("pessoa")
     pe.add_argument("--de", type=int, required=True)
     pe.add_argument("--nome", required=True)
@@ -476,7 +479,7 @@ def main(argv: list[str] | None = None) -> int:
         with open(a.tracos_arquivo, encoding="utf-8") as f:
             tracos = f.read().strip()
         rostos = [int(x) for x in a.rostos.split(",") if x.strip()]
-        print(json.dumps(travar_rosto(a.de, a.base, rostos, tracos, a.oculos, a.pessoa)))
+        print(json.dumps(travar_rosto(a.de, a.base, rostos, tracos, a.oculos, a.pessoa, a.genero)))
     elif a.cmd == "pessoa":
         print(json.dumps(nova_pessoa(a.de, a.nome, a.origem)))
     elif a.cmd == "situacao":
