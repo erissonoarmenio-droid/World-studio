@@ -186,21 +186,20 @@ def pedir_influencer(
     corpo_midia: int | None = None,
     close: bool = False,
     corpo: str = "same build and proportions as in the reference photos",
+    pessoa_id: int | None = None,
+    genero: str = "homem",
 ) -> dict[str, Any]:
-    from app.nucleo.pessoas import obter_pessoa_por_telegram
     from app.pedidos import criar_pedido
 
     if not 2 <= len(fotos) <= 6:
         raise SystemExit("mande de 2 a 6 fotos do rosto")
     with sessao() as s:
-        pessoa = obter_pessoa_por_telegram(s, telegram_id)
-        if pessoa is None:
-            raise SystemExit("rode o importar primeiro")
+        pessoa = _dona_do_rosto(s, telegram_id, pessoa_id)
         dados: dict[str, Any] = {
             "modo": "da_pessoa",
             "pessoa_id": pessoa.id,
             "fotos_midia_ids": fotos,
-            "genero": "homem",
+            "genero": genero,
             "idade": idade,
             "corpo": corpo,
             "roupa": roupa,
@@ -231,16 +230,14 @@ def pedir_foto(
     chave: str | None = None,
     rostos: list[int] | None = None,
     oculos: str = "",
+    pessoa_id: int | None = None,
 ) -> dict[str, Any]:
     """Foto da influencer vestindo a peça (item "foto", 2 opções). É o passo que GASTA.
     Com `rostos` (fotos reais), cada opção passa pela trava do rosto (nó rosto_fixo)."""
-    from app.nucleo.pessoas import obter_pessoa_por_telegram
     from app.pedidos import criar_pedido
 
     with sessao() as s:
-        pessoa = obter_pessoa_por_telegram(s, telegram_id)
-        if pessoa is None:
-            raise SystemExit("rode o importar primeiro")
+        pessoa = _dona_do_rosto(s, telegram_id, pessoa_id)
         situacao, criado = criar_pedido(
             s,
             loja_id=pessoa.loja_id,
@@ -261,16 +258,18 @@ def pedir_foto(
 
 
 def travar_rosto(
-    telegram_id: int, base: int, rostos: list[int], tracos: str, oculos: str = ""
+    telegram_id: int,
+    base: int,
+    rostos: list[int],
+    tracos: str,
+    oculos: str = "",
+    pessoa_id: int | None = None,
 ) -> dict[str, Any]:
     """Trava o rosto de uma foto já gerada (item ajuste_rosto, modo rosto_fixo). GASTA."""
-    from app.nucleo.pessoas import obter_pessoa_por_telegram
     from app.pedidos import criar_pedido
 
     with sessao() as s:
-        pessoa = obter_pessoa_por_telegram(s, telegram_id)
-        if pessoa is None:
-            raise SystemExit("rode o importar primeiro")
+        pessoa = _dona_do_rosto(s, telegram_id, pessoa_id)
         situacao, criado = criar_pedido(
             s,
             loja_id=pessoa.loja_id,
@@ -287,6 +286,38 @@ def travar_rosto(
             autor=Autor("pessoa", pessoa.id),
         )
         return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
+
+
+def nova_pessoa(telegram_id: int, nome: str, origem: str) -> dict[str, Any]:
+    """Outra pessoa real na loja de teste (07/11: a mulher do teste), com os aceites de clone
+    (rosto e voz) registrados em nome dela, com a origem da autorização."""
+    from app.nucleo.consentimentos import registrar_aceite
+    from app.nucleo.pessoas import adicionar_pessoa, obter_pessoa_por_telegram
+
+    with sessao() as s:
+        eri = obter_pessoa_por_telegram(s, telegram_id)
+        if eri is None:
+            raise SystemExit("rode o importar primeiro")
+        p = adicionar_pessoa(s, eri.loja_id, {"nome": nome, "papel": "socia"}, ERI)
+        ela = Autor("pessoa", p.id)
+        registrar_aceite(
+            s, p.id, "clone", VERSAO_ACEITE, ela, {"rosto": True, "voz": True, "origem": origem}
+        )
+        return {"pessoa_id": p.id, "loja_id": eri.loja_id}
+
+
+def _dona_do_rosto(s: Any, telegram_id: int, pessoa_id: int | None) -> Any:
+    from app.nucleo.pessoas import obter_pessoa, obter_pessoa_por_telegram
+
+    eri = obter_pessoa_por_telegram(s, telegram_id)
+    if eri is None:
+        raise SystemExit("rode o importar primeiro")
+    if pessoa_id is None:
+        return eri
+    p = obter_pessoa(s, pessoa_id)
+    if p.loja_id != eri.loja_id:
+        raise SystemExit("essa pessoa não é da loja de teste")
+    return p
 
 
 def situacao(chave: str) -> dict[str, Any]:
@@ -368,7 +399,7 @@ def main(argv: list[str] | None = None) -> int:
     inf.add_argument("--idade", type=int, required=True)
     inf.add_argument("--oculos")
     inf.add_argument("--roupa", default="plain white crew-neck t-shirt and dark jeans")
-    inf.add_argument("--aparencia", required=True, help="traços do rosto, em inglês")
+    inf.add_argument("--aparencia", default="", help="traços do rosto, em inglês")
     inf.add_argument("--corpo-foto", type=int, help="mídia do corpo inteiro (só biótipo)")
     inf.add_argument("--corpo", default="same build and proportions as in the reference photos")
     inf.add_argument("--close", action="store_true", help="1º o close do rosto (E5)")
@@ -386,6 +417,14 @@ def main(argv: list[str] | None = None) -> int:
     ro.add_argument("--rostos", required=True, help="fotos REAIS do rosto, por vírgula")
     ro.add_argument("--tracos-arquivo", required=True)
     ro.add_argument("--oculos", default="")
+    pe = sub.add_parser("pessoa")
+    pe.add_argument("--de", type=int, required=True)
+    pe.add_argument("--nome", required=True)
+    pe.add_argument("--origem", required=True, help="como veio a autorização")
+    for sp in (inf, fo, ro):
+        sp.add_argument("--pessoa", type=int, help="dona do rosto (padrão: o Eri)")
+    inf.add_argument("--genero", default="homem", choices=["homem", "mulher"])
+    inf.add_argument("--tracos-arquivo", help="ler os traços de um arquivo")
     sit = sub.add_parser("situacao")
     sit.add_argument("chave")
     dev = sub.add_parser("devolver")
@@ -399,16 +438,22 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(importar(a.de), ensure_ascii=False, indent=1))
     elif a.cmd == "influencer":
         fotos = [int(x) for x in a.fotos.split(",") if x.strip()]
+        aparencia = a.aparencia
+        if a.tracos_arquivo:
+            with open(a.tracos_arquivo, encoding="utf-8") as f:
+                aparencia = f.read().strip()
         r = pedir_influencer(
             a.de,
             fotos,
             a.idade,
             a.oculos,
             a.roupa,
-            aparencia=a.aparencia,
+            aparencia=aparencia,
             corpo_midia=a.corpo_foto,
             close=a.close,
             corpo=a.corpo,
+            pessoa_id=a.pessoa,
+            genero=a.genero,
         )
         print(json.dumps(r, ensure_ascii=False))
     elif a.cmd == "foto":
@@ -416,13 +461,24 @@ def main(argv: list[str] | None = None) -> int:
             entrada = json.load(f)
         pecas = [int(x) for x in a.peca_fotos.split(",") if x.strip()]
         rostos = [int(x) for x in a.rostos.split(",") if x.strip()]
-        r = pedir_foto(a.de, a.influencer, pecas, entrada, a.opcoes, rostos=rostos, oculos=a.oculos)
+        r = pedir_foto(
+            a.de,
+            a.influencer,
+            pecas,
+            entrada,
+            a.opcoes,
+            rostos=rostos,
+            oculos=a.oculos,
+            pessoa_id=a.pessoa,
+        )
         print(json.dumps(r))
     elif a.cmd == "rosto":
         with open(a.tracos_arquivo, encoding="utf-8") as f:
             tracos = f.read().strip()
         rostos = [int(x) for x in a.rostos.split(",") if x.strip()]
-        print(json.dumps(travar_rosto(a.de, a.base, rostos, tracos, a.oculos)))
+        print(json.dumps(travar_rosto(a.de, a.base, rostos, tracos, a.oculos, a.pessoa)))
+    elif a.cmd == "pessoa":
+        print(json.dumps(nova_pessoa(a.de, a.nome, a.origem)))
     elif a.cmd == "situacao":
         print(json.dumps(situacao(a.chave), ensure_ascii=False, indent=1, default=str))
     elif a.cmd == "devolver":

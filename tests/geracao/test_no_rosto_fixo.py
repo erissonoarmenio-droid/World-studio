@@ -18,7 +18,7 @@ def test_troca_so_o_rosto_sem_afinar_no_mesmo_formato():
     assert not rel.bloqueado, rel.resumo()
     t = p.prompt.lower()
     assert "change only the face" in t and "keep everything else in image 1 identical" in t
-    assert "images 2 to 4 are real photos" in t and "do not slim" in t
+    assert "images 2 to 4 are real photos" in t and "not slimmer and not wider" in t
     assert "every detail of the garment" in t and "skin tone exactly" in t
     partes = p.payload["contents"][0]["parts"]
     assert partes[1]["inlineData"]["data"] == BASE.dados_b64 and len(partes) == 5

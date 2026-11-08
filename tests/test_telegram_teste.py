@@ -173,3 +173,61 @@ def test_trava_avulsa_numa_foto_pronta(ambiente, ids):  # noqa: F811
         s.expunge(trabalho)
     resultado = executores.executar_tipo_foto(trabalho)
     assert ambiente.envios == 1 and resultado.dados["no"] == "rosto_fixo"
+
+
+def test_juiz_de_rosto_marca_a_foto_reprovada(ambiente, ids, monkeypatch):  # noqa: F811
+    from app.geracao.fornecedores.base import Resposta
+
+    class JuizFalso:
+        def enviar(self, pedido):
+            texto = '{"reconheceria": 6, "largura_rosto": "mais_fino", "comprimento_rosto": "igual", "cabeca_vs_corpo": "igual", "tom_pele": "igual", "olhos": "igual", "nariz": "igual", "boca": "igual", "cabelo": "igual", "idade_ref": 26, "idade_foto": 26, "diferencas": ["rosto mais fino"]}'
+            return Resposta(estado="pronto", saidas=[{"text": texto}])
+
+    monkeypatch.setattr(executores, "JUIZ_DIRETO", JuizFalso)
+    eri, estranho = ids
+    t = TelegramFalso(eri, estranho)
+    r = tt.importar(eri, t.chamar, t.baixar)
+    fotos = [i for i, tipo, _ in r["midias"] if tipo == "influencer"]
+    p = tt.travar_rosto(
+        eri, fotos[0], fotos[1:3], "a wide, softly rounded face with full cheeks and wide jaw"
+    )
+    with sessao() as s:
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
+        trabalho.estado = "rodando"
+        s.flush()
+        s.expunge(trabalho)
+    juiz = executores.executar_tipo_foto(trabalho).dados["juiz_rosto"][0]
+    assert juiz["julgado"] and not juiz["aprovado"] and "rosto: mais fino" in juiz["motivos"]
+
+
+def test_segunda_pessoa_com_clone_proprio_pede_a_ficha_dela(ambiente, ids):  # noqa: F811
+    from app.nucleo.consentimentos import consentimento_ativo
+
+    eri, estranho = ids
+    t = TelegramFalso(eri, estranho)
+    r = tt.importar(eri, t.chamar, t.baixar)
+    fotos = [i for i, tipo, _ in r["midias"] if tipo == "influencer"]
+    ela = tt.nova_pessoa(eri, "Teste Mulher", "autorizou por meio do Eri em 07/11")
+    with sessao() as s:
+        assert consentimento_ativo(s, ela["pessoa_id"], "clone") is not None
+    p = tt.pedir_influencer(
+        eri,
+        fotos[:2],
+        42,
+        None,
+        "a plain white crew-neck t-shirt",
+        aparencia="an oval face with straight dark eyebrows and long straight hair with highlights",
+        close=True,
+        pessoa_id=ela["pessoa_id"],
+        genero="mulher",
+    )
+    with sessao() as s:
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
+        assert (
+            trabalho.dados["pessoa_id"] == ela["pessoa_id"] and trabalho.dados["genero"] == "mulher"
+        )
+        trabalho.estado = "rodando"
+        s.flush()
+        s.expunge(trabalho)
+    resultado = executores.executar_tipo_foto(trabalho)
+    assert ambiente.envios == 1 and "juiz_rosto" in resultado.dados

@@ -210,6 +210,7 @@ def executar_foto_influencer(trabalho: Trabalho) -> Resultado:
     custo = Decimal("0")
     midias: list[int] = []
     antes: list[int] = []
+    juizes: list[dict[str, Any]] = []
     for vez in range(opcoes):
         resposta = _gerar(no, pedido, trabalho, teto, vez=vez)
         custo += _custo(resposta, pedido)
@@ -221,12 +222,21 @@ def executar_foto_influencer(trabalho: Trabalho) -> Resultado:
             final, gasto = _travar_rosto(trabalho, trava, conteudo, tipo, teto, 100 + vez)
             custo += gasto
             midias.append(final)
+            juizes.append({"midia": final, **_julgar_midia(trabalho.loja_id, trava, final)})
     if not midias:
         raise RuntimeError("o fornecedor terminou sem nenhuma imagem")
     dados: dict[str, Any] = {"midias": midias, "no": no.nome}
     if trava is not None:
         dados["antes_da_trava"] = antes
+        dados["juiz_rosto"] = juizes
     return Resultado(dados, custo)
+
+
+def _julgar_midia(loja_id: int, trava: dict[str, Any], midia_id: int) -> dict[str, Any]:
+    with abrir_sessao() as s:
+        m = midia.obter_midia(s, midia_id, loja_id)
+        tipo, conteudo = m.content_type, midia.ler(s, midia_id, loja_id)
+    return _julgar_rosto(trava["rostos"], conteudo, tipo)
 
 
 def _exigir_clone(pessoa_id: int | None) -> None:
@@ -266,6 +276,38 @@ def _travar_rosto(
         raise RuntimeError("a trava do rosto terminou sem imagem")
     final = _guardar_imagem(trabalho.loja_id, imagens[0][0], imagens[0][1], "resultado")
     return final, _custo(resposta, pedido)
+
+
+def _google_direto() -> Fornecedor:
+    from app.geracao.fornecedores.google import Google
+
+    chave = obter_config().google_api_key
+    if chave is None:
+        raise RuntimeError("GOOGLE_API_KEY não configurada no servidor")
+    return Google(chave, modo="direto")
+
+
+JUIZ_DIRETO: Callable[[], Fornecedor] = _google_direto
+
+
+def _julgar_rosto(reais: list[Imagem], conteudo: bytes, tipo: str) -> dict[str, Any]:
+    """Juiz de rosto (07/11). Nunca derruba o trabalho: se falhar, diz que não julgou."""
+    from app.geracao.nos.juiz import ler_json
+    from app.geracao.nos.juiz_rosto import pedido_rosto, veredito_rosto
+
+    try:
+        foto = (
+            tipo if tipo in ("image/jpeg", "image/png") else "image/png",
+            base64.b64encode(conteudo).decode(),
+        )
+        pedido = pedido_rosto([(i.mime, i.dados_b64) for i in reais], foto)
+        resposta = JUIZ_DIRETO().enviar(pedido)
+        if resposta.estado != "pronto":
+            return {"julgado": False, "erro": (resposta.erro or "")[:200]}
+        v = veredito_rosto(ler_json(resposta.saidas))
+        return {"julgado": True, "aprovado": v.aprovado, "motivos": list(v.motivos), **v.notas}
+    except Exception as erro:  # o juiz é ajuda, não trava a entrega
+        return {"julgado": False, "erro": f"{type(erro).__name__}: {str(erro)[:150]}"}
 
 
 ESPERA_MAXIMA_VIDEO = 45 * 60  # 720p na fila da Tein: 20–40 min (01/11)
@@ -430,7 +472,9 @@ def executar_influencer(trabalho: Trabalho) -> Resultado:
         final, gasto = _travar_rosto(
             trabalho, trava, base64.b64decode(base.dados_b64), base.mime, teto, 0
         )
-        return Resultado({"midias": [final], "no": "rosto_fixo", "modo": modo}, gasto)
+        juiz = {"midia": final, **_julgar_midia(trabalho.loja_id, trava, final)}
+        dados_r = {"midias": [final], "no": "rosto_fixo", "modo": modo, "juiz_rosto": [juiz]}
+        return Resultado(dados_r, gasto)
     comum = {
         k: d[k]
         for k in ("genero", "idade", "corpo", "roupa", "aparencia", "oculos", "mudanca")
@@ -480,7 +524,11 @@ def executar_influencer(trabalho: Trabalho) -> Resultado:
             midias.append(_guardar_imagem(loja, conteudo, tipo, "influencer"))
     if not midias:
         raise RuntimeError("o fornecedor terminou sem nenhuma imagem")
-    return Resultado({"midias": midias, "no": no.nome, "modo": modo}, custo)
+    dados_r: dict[str, Any] = {"midias": midias, "no": no.nome, "modo": modo}
+    if modo == "da_pessoa":  # 07/11: juiz de rosto contra as fotos de referência
+        trava_ref = {"rostos": entradas[0].fotos}
+        dados_r["juiz_rosto"] = [{"midia": m, **_julgar_midia(loja, trava_ref, m)} for m in midias]
+    return Resultado(dados_r, custo)
 
 
 EXECUTORES_FOTO: dict[str, Callable[[Trabalho], Resultado]] = {

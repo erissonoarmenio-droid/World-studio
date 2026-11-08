@@ -59,11 +59,18 @@ REGRAS = registrar(
             checar=lambda p: "change only the face" in _t(p) and "keep everything else" in _t(p),
         ),
         Regra(
-            id="rosto_fixo.nao_afinar",
+            id="rosto_fixo.proporcao_real",
             nivel="bloqueia",
-            faca="Dizer que não pode afinar o rosto e travar a pele como nas fotos reais.",
-            origem="06/11 — rosto do Eri afinou em 3 de 3 fotos de cena",
-            checar=lambda p: "do not slim" in _t(p) and "skin tone exactly" in _t(p),
+            faca=(
+                "Rosto nem mais fino nem mais largo que as fotos reais, cabeça no tamanho da "
+                "imagem 1, pele travada."
+            ),
+            origem="06/11 — E39 (afinou em 3 de 3) e E40 (a 27 'inflou a cabeça')",
+            checar=lambda p: (
+                "not slimmer and not wider" in _t(p)
+                and "head size in proportion" in _t(p)
+                and "skin tone exactly" in _t(p)
+            ),
         ),
         Regra(
             id="rosto_fixo.mesmo_formato",
@@ -94,8 +101,10 @@ class NoRostoFixo(No):
             "reference, with consent). Change only the face of the person in image 1 so that "
             f"it matches the real person in images 2 to {n} exactly: face shape and width, "
             "cheeks, jawline, nose, lips, eyebrows, eyes, beard and skin. Key features: "
-            f"{e.tracos.strip().rstrip('.')}. Do not slim, lengthen or beautify the face; keep "
-            "the full cheeks and the wide jaw of the real photos. Keep the skin tone exactly as "
+            f"{e.tracos.strip().rstrip('.')}. Keep the face shape and proportions exactly as "
+            "in the real photos: not slimmer and not wider, not longer and not rounder, no "
+            "beautifying; keep the head size in proportion to the body exactly as in image 1. "
+            "Keep the skin tone exactly as "
             f"in images 2 to {n}, with the same warmth and natural redness.{oculos} Keep "
             "everything else in image 1 identical: hair, clothing and every detail of the "
             "garment, pose, hands, body, background, lighting, colours, framing and camera "
