@@ -389,6 +389,59 @@ def devolver(para: int, midia_ids: list[int]) -> int:
     return enviadas
 
 
+def _ler_midias(de: int, ids: list[int]) -> list[tuple[int, bytes]]:
+    from app.nucleo import midia
+    from app.nucleo.pessoas import obter_pessoa_por_telegram
+
+    with sessao() as s:
+        pessoa = obter_pessoa_por_telegram(s, de)
+        if pessoa is None:
+            raise SystemExit("essa pessoa não está cadastrada")
+        return [(i, midia.ler(s, i, pessoa.loja_id)) for i in ids]
+
+
+def medir_rostos(de: int, reais: list[int], midias: list[int]) -> list[dict[str, Any]]:
+    """Nota do medidor de rosto (0–100) de cada mídia contra as fotos reais. Grátis."""
+    from app.geracao.medidor_rosto import medir
+
+    fotos_reais = [b for _, b in _ler_midias(de, reais)]
+    saida = []
+    for mid, conteudo in _ler_midias(de, midias):
+        m = medir(fotos_reais, conteudo)
+        saida.append(
+            {
+                "midia": mid,
+                "nota": m.nota,
+                "cosseno": m.cosseno,
+                "proporcao": m.proporcao,
+                "aprovado": m.aprovado,
+                "rosto_px": m.rosto_px,
+                "diferencas": m.diferencas,
+            }
+        )
+    return saida
+
+
+def folha(de: int, midias: list[int], altura: int = 420, pedaco: int = 6000) -> list[str]:
+    """Folha lado a lado (JPEG pequeno) em pedaços de base64, para o Claude olhar pelo Shell."""
+    import base64
+
+    import cv2
+    import numpy as np
+
+    quadros = []
+    for mid, conteudo in _ler_midias(de, midias):
+        img = cv2.imdecode(np.frombuffer(conteudo, np.uint8), cv2.IMREAD_COLOR)
+        h, w = img.shape[:2]
+        img = cv2.resize(img, (int(w * altura / h), altura), interpolation=cv2.INTER_AREA)
+        cv2.putText(img, str(mid), (8, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        quadros.append(img)
+    ok, jpg = cv2.imencode(".jpg", np.hstack(quadros), [cv2.IMWRITE_JPEG_QUALITY, 80])
+    b64 = base64.b64encode(jpg.tobytes()).decode()
+    partes = [b64[i : i + pedaco] for i in range(0, len(b64), pedaco)]
+    return [f"P{i + 1}/{len(partes)}#{p}#FIM" for i, p in enumerate(partes)]
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="telegram_teste")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -433,6 +486,14 @@ def main(argv: list[str] | None = None) -> int:
     dev = sub.add_parser("devolver")
     dev.add_argument("--para", type=int, required=True)
     dev.add_argument("midias", type=int, nargs="+")
+    me = sub.add_parser("medir")
+    me.add_argument("--de", type=int, required=True)
+    me.add_argument("--reais", required=True, help="fotos REAIS de frente, por vírgula")
+    me.add_argument("midias", type=int, nargs="+")
+    fl = sub.add_parser("folha")
+    fl.add_argument("--de", type=int, required=True)
+    fl.add_argument("--altura", type=int, default=420)
+    fl.add_argument("midias", type=int, nargs="+")
     a = p.parse_args(argv)
 
     if a.cmd == "listar":
@@ -486,6 +547,12 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(situacao(a.chave), ensure_ascii=False, indent=1, default=str))
     elif a.cmd == "devolver":
         print(f"enviadas: {devolver(a.para, a.midias)}")
+    elif a.cmd == "medir":
+        reais = [int(x) for x in a.reais.split(",") if x]
+        for linha in medir_rostos(a.de, reais, a.midias):
+            print(json.dumps(linha, ensure_ascii=False))
+    elif a.cmd == "folha":
+        print("\n".join(folha(a.de, a.midias, a.altura)))
     return 0
 
 

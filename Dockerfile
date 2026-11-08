@@ -29,6 +29,11 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+# Modelos do medidor de rosto (OpenCV Zoo: YuNet MIT, SFace Apache-2.0), baixados no build.
+ENV MEDIDOR_MODELOS=/app/modelos
+RUN mkdir -p /app/modelos \
+    && python -c "import urllib.request as u; b='https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/'; [u.urlretrieve(b + s, '/app/modelos/' + n) for n, s in (('yunet.onnx', 'face_detection_yunet/face_detection_yunet_2023mar.onnx'), ('sface.onnx', 'face_recognition_sface/face_recognition_sface_2021dec.onnx'))]"
+
 COPY app ./app
 COPY alembic.ini ./
 COPY migrations ./migrations
