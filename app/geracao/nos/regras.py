@@ -15,6 +15,7 @@ from collections.abc import Sequence
 from app.geracao.nos.base import Regra
 
 NOS_CONHECIDOS = (
+    "provador",
     "video",
     "video_ugc",
     "voz",

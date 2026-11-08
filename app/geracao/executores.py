@@ -188,6 +188,8 @@ def executar_foto_influencer(trabalho: Trabalho) -> Resultado:
     """dados: {"entrada": campos de EntradaFoto sem imagens,
     "influencer_midia_id", "ancora_midia_id"?, "cenario_midia_id"?, "opcoes": 2}."""
     d: dict[str, Any] = trabalho.dados
+    if d.get("modo") == "provador":
+        return executar_provador(trabalho)
     opcoes = int(d.get("opcoes", 2))
     if not 1 <= opcoes <= 4:
         raise ValueError("opcoes fora do limite (1 a 4)")
@@ -230,6 +232,65 @@ def executar_foto_influencer(trabalho: Trabalho) -> Resultado:
         dados["antes_da_trava"] = antes
         dados["juiz_rosto"] = juizes
     return Resultado(dados, custo)
+
+
+def executar_provador(trabalho: Trabalho) -> Resultado:
+    """07/11 (E43): veste a peça na FOTO REAL da pessoa (nó provador) e mede o rosto.
+
+    dados: {"modo": "provador", "foto_real_midia_id", "peca_midia_ids", "peca", "cenario",
+    "genero"?, "opcoes": 1–4, "pessoa_id", "rostos_reais_midia_ids" (para o medidor)}."""
+    from app.geracao.nos.provador import EntradaProvador, NoProvador
+
+    d: dict[str, Any] = trabalho.dados
+    opcoes = int(d.get("opcoes", 2))
+    if not 1 <= opcoes <= 4:
+        raise ValueError("opcoes fora do limite (1 a 4)")
+    _exigir_clone(d.get("pessoa_id"))
+    loja = trabalho.loja_id
+    entrada = EntradaProvador(
+        foto_real=_imagem(loja, d["foto_real_midia_id"]),
+        peca_fotos=[_imagem(loja, i) for i in (d.get("peca_midia_ids") or [])[:3]],
+        peca=d["peca"],
+        cenario=d["cenario"],
+        genero=d.get("genero", "mulher"),
+    )
+    no = NoProvador()
+    pedido, _ = no.preparar(entrada)  # confere antes de gastar
+    teto = max(trabalho.custo_estimado or Decimal("0"), CUSTO_PROVADOR * opcoes) * FOLGA_APROVACAO
+    custo = Decimal("0")
+    midias: list[int] = []
+    for vez in range(opcoes):
+        resposta = _gerar(no, pedido, trabalho, teto, vez=vez)
+        custo += _custo(resposta, pedido)
+        for conteudo, tipo in _imagens_da_resposta(resposta)[:1]:
+            midias.append(_guardar_imagem(loja, conteudo, tipo, "resultado"))
+    if not midias:
+        raise RuntimeError("o fornecedor terminou sem nenhuma imagem")
+    reais = list(d.get("rostos_reais_midia_ids") or [d["foto_real_midia_id"]])
+    medidas = [{"midia": m, **_medir_midia(loja, reais, m)} for m in midias]
+    return Resultado({"midias": midias, "no": no.nome, "medidor": medidas}, custo)
+
+
+CUSTO_PROVADOR = Decimal("0.04")
+
+
+def _medir_midia(loja_id: int, reais: list[int], midia_id: int) -> dict[str, Any]:
+    """Medidor de rosto (grátis). Nunca derruba o trabalho."""
+    try:
+        from app.geracao.medidor_rosto import medir
+
+        with abrir_sessao() as s:
+            fotos = [midia.ler(s, i, loja_id) for i in reais]
+            gerada = midia.ler(s, midia_id, loja_id)
+        m = medir(fotos, gerada)
+        return {
+            "nota": m.nota,
+            "proporcao": m.proporcao,
+            "aprovado": m.aprovado,
+            "diferencas": m.diferencas,
+        }
+    except Exception as erro:  # o medidor é ajuda, não trava a entrega
+        return {"medido": False, "erro": f"{type(erro).__name__}: {str(erro)[:150]}"}
 
 
 def _julgar_midia(loja_id: int, trava: dict[str, Any], midia_id: int) -> dict[str, Any]:

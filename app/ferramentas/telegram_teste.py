@@ -257,6 +257,43 @@ def pedir_foto(
         return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
 
 
+def provador(
+    telegram_id: int,
+    foto_real: int,
+    peca_midias: list[int],
+    peca: str,
+    cenario: str,
+    reais: list[int],
+    opcoes: int = 2,
+    pessoa_id: int | None = None,
+    genero: str = "homem",
+) -> dict[str, Any]:
+    """Veste a peça na FOTO REAL (nó provador, E43) e mede o rosto. GASTA (US$ 0,04/opção)."""
+    from app.pedidos import criar_pedido
+
+    with sessao() as s:
+        pessoa = _dona_do_rosto(s, telegram_id, pessoa_id)
+        situacao, criado = criar_pedido(
+            s,
+            loja_id=pessoa.loja_id,
+            item="foto",
+            dados={
+                "modo": "provador",
+                "foto_real_midia_id": foto_real,
+                "peca_midia_ids": peca_midias,
+                "peca": peca,
+                "cenario": cenario,
+                "genero": genero,
+                "opcoes": opcoes,
+                "rostos_reais_midia_ids": reais,
+                "pessoa_id": pessoa.id,
+            },
+            chave_unica=f"teste-eri-provador-{uuid.uuid4().hex[:8]}",
+            autor=Autor("pessoa", pessoa.id),
+        )
+        return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
+
+
 def travar_rosto(
     telegram_id: int,
     base: int,
@@ -486,6 +523,15 @@ def main(argv: list[str] | None = None) -> int:
     dev = sub.add_parser("devolver")
     dev.add_argument("--para", type=int, required=True)
     dev.add_argument("midias", type=int, nargs="+")
+    pv = sub.add_parser("provador")
+    pv.add_argument("--de", type=int, required=True)
+    pv.add_argument("--foto-real", type=int, required=True, help="foto REAL de frente")
+    pv.add_argument("--peca-fotos", required=True, help="mídias da peça, por vírgula")
+    pv.add_argument("--entrada", required=True, help='JSON com "peca" e "cenario"')
+    pv.add_argument("--reais", required=True, help="fotos reais para o medidor, por vírgula")
+    pv.add_argument("--opcoes", type=int, default=2)
+    pv.add_argument("--pessoa", type=int)
+    pv.add_argument("--genero", default="homem", choices=["homem", "mulher"])
     me = sub.add_parser("medir")
     me.add_argument("--de", type=int, required=True)
     me.add_argument("--reais", required=True, help="fotos REAIS de frente, por vírgula")
@@ -547,6 +593,22 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(situacao(a.chave), ensure_ascii=False, indent=1, default=str))
     elif a.cmd == "devolver":
         print(f"enviadas: {devolver(a.para, a.midias)}")
+    elif a.cmd == "provador":
+        with open(a.entrada, encoding="utf-8") as arq:
+            ent = json.load(arq)
+        ids = lambda txt: [int(x) for x in txt.split(",") if x]  # noqa: E731
+        r = provador(
+            a.de,
+            a.foto_real,
+            ids(a.peca_fotos),
+            ent["peca"],
+            ent["cenario"],
+            ids(a.reais),
+            a.opcoes,
+            a.pessoa,
+            a.genero,
+        )
+        print(json.dumps(r, ensure_ascii=False))
     elif a.cmd == "medir":
         reais = [int(x) for x in a.reais.split(",") if x]
         for linha in medir_rostos(a.de, reais, a.midias):
