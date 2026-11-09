@@ -195,9 +195,11 @@ class DiretorUGC:
         )
         if genero == "homem":
             texto += (
-                "\nA INFLUENCER É UM HOMEM: as falas em português ficam no masculino ('separei "
-                "um pra mim', 'tô apaixonado') e as ações em inglês usam he/his; quem filma é "
-                "um AMIGO."
+                "\nA INFLUENCER É UM HOMEM: as falas em português ficam no masculino ('tô "
+                "apaixonado', 'fiquei feliz') e as ações em inglês usam he/his; quem filma é "
+                "um AMIGO. O artigo da peça segue a PEÇA, não ele: camisa/calça → 'separei "
+                "UMA pra mim'; casaco/short → 'separei UM pra mim' (09/11: saiu 'um' para "
+                "camisa)."
             )
         imagens = [foto_local] if foto_local else None
         dados = self.cerebro.json(SISTEMA, texto, imagens)
