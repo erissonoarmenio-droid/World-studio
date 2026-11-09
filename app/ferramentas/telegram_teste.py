@@ -294,6 +294,76 @@ def provador(
         return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
 
 
+def dirigir(
+    de: int,
+    quadro: int,
+    pedido: str,
+    peca: str,
+    genero: str = "homem",
+    cerebro: Any = None,
+) -> dict[str, Any]:
+    """Diretor UGC: escreve os 2 roteiros (ângulos) olhando o 1º quadro. Custa centavos de
+    Claude; NÃO gera vídeo. Devolve as falas (para aprovar) e as entradas prontas do nó."""
+    from app.config import obter_config
+    from app.geracao.diretor_ugc import DiretorUGC
+    from app.geracao.fornecedores.claude import ClienteClaude
+
+    if cerebro is None:
+        chave = obter_config().anthropic_api_key
+        if chave is None:
+            raise SystemExit("ANTHROPIC_API_KEY não configurada no servidor")
+        cerebro = ClienteClaude(chave)
+    ((_, foto),) = _ler_midias(de, [quadro])
+    tipo = "image/png" if foto[:4] == b"\x89PNG" else "image/jpeg"
+    direcao = DiretorUGC(cerebro).dirigir(
+        pedido,
+        peca,
+        imagem_url=f"https://midia.interna/{quadro}",  # o executor troca pelo link da Tein
+        foto_local=(foto, tipo),
+        genero=genero,
+    )
+    videos = []
+    for v in direcao.videos:
+        e = v.pedido.entrada
+        videos.append(
+            {
+                "angulo": v.angulo,
+                "falas": [
+                    {"de": p.inicio, "ate": p.fim, "fala": p.fala, "acao": p.acao} for p in e.planos
+                ],
+                "entrada": e.model_dump(mode="json", exclude={"imagem_url", "resolucao"}),
+            }
+        )
+    return {
+        "mensagem": direcao.mensagem_para_lojista,
+        "tentativas": direcao.tentativas,
+        "videos": videos,
+    }
+
+
+def gerar_video(
+    de: int, quadro: int, entrada: dict[str, Any], pessoa_id: int | None = None
+) -> dict[str, Any]:
+    """Vídeo 480p (item video_480) com o roteiro já aprovado. GASTA (≈ US$ 2,15 na Tein)."""
+    from app.pedidos import criar_pedido
+
+    with sessao() as s:
+        pessoa = _dona_do_rosto(s, de, pessoa_id)
+        situacao, criado = criar_pedido(
+            s,
+            loja_id=pessoa.loja_id,
+            item="video_480",
+            dados={
+                "entradas": [entrada],
+                "primeiro_quadro_midia_id": quadro,
+                "pessoa_id": pessoa.id,
+            },
+            chave_unica=f"teste-eri-video-{uuid.uuid4().hex[:8]}",
+            autor=Autor("pessoa", pessoa.id),
+        )
+        return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
+
+
 def travar_rosto(
     telegram_id: int,
     base: int,
@@ -532,6 +602,19 @@ def main(argv: list[str] | None = None) -> int:
     pv.add_argument("--opcoes", type=int, default=2)
     pv.add_argument("--pessoa", type=int)
     pv.add_argument("--genero", default="homem", choices=["homem", "mulher"])
+    di = sub.add_parser("dirigir")
+    di.add_argument("--de", type=int, required=True)
+    di.add_argument("--quadro", type=int, required=True, help="foto aprovada (1º quadro)")
+    di.add_argument("--pedido", required=True, help="o que o lojista quer, em português")
+    di.add_argument("--peca", required=True, help="descrição da peça")
+    di.add_argument("--genero", default="homem", choices=["homem", "mulher"])
+    di.add_argument("--saida", required=True)
+    vi = sub.add_parser("video")
+    vi.add_argument("--de", type=int, required=True)
+    vi.add_argument("--quadro", type=int, required=True)
+    vi.add_argument("--direcao", required=True)
+    vi.add_argument("--angulo", required=True, choices=["problema_solucao", "prova_pessoal"])
+    vi.add_argument("--pessoa", type=int)
     me = sub.add_parser("medir")
     me.add_argument("--de", type=int, required=True)
     me.add_argument("--reais", required=True, help="fotos REAIS de frente, por vírgula")
@@ -609,6 +692,20 @@ def main(argv: list[str] | None = None) -> int:
             a.genero,
         )
         print(json.dumps(r, ensure_ascii=False))
+    elif a.cmd == "dirigir":
+        r = dirigir(a.de, a.quadro, a.pedido, a.peca, a.genero)
+        with open(a.saida, "w", encoding="utf-8") as arq:
+            json.dump(r, arq, ensure_ascii=False)
+        print("MENSAGEM:", r["mensagem"])
+        for v in r["videos"]:
+            print(f"== {v['angulo']} ({v['entrada']['duracao']} s)")
+            for f in v["falas"]:
+                print(f"  {f['de']:>4}-{f['ate']:<4} {f['fala'] or '(sem fala)'}")
+    elif a.cmd == "video":
+        with open(a.direcao, encoding="utf-8") as arq:
+            r = json.load(arq)
+        entrada = next(v["entrada"] for v in r["videos"] if v["angulo"] == a.angulo)
+        print(json.dumps(gerar_video(a.de, a.quadro, entrada, a.pessoa), ensure_ascii=False))
     elif a.cmd == "medir":
         reais = [int(x) for x in a.reais.split(",") if x]
         for linha in medir_rostos(a.de, reais, a.midias):

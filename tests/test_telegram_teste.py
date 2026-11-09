@@ -231,3 +231,26 @@ def test_segunda_pessoa_com_clone_proprio_pede_a_ficha_dela(ambiente, ids):  # n
         s.expunge(trabalho)
     resultado = executores.executar_tipo_foto(trabalho)
     assert ambiente.envios == 1 and "juiz_rosto" in resultado.dados
+
+
+def test_dirigir_mostra_falas_e_video_pede_480_com_o_roteiro(ambiente, ids):  # noqa: F811
+    from tests.geracao.test_diretor_ugc import BOM
+
+    class Falso:
+        def json(self, sistema, texto, imagens=None):
+            assert imagens and imagens[0][1] == "image/png"
+            return BOM
+
+    eri, estranho = ids
+    t = TelegramFalso(eri, estranho)
+    r = tt.importar(eri, t.chamar, t.baixar)
+    quadro = [i for i, tipo, _ in r["midias"] if tipo == "influencer"][0]
+    d = tt.dirigir(eri, quadro, "mostra a camisa", "camisa terracota", "mulher", cerebro=Falso())
+    assert [v["angulo"] for v in d["videos"]] == ["problema_solucao", "prova_pessoal"]
+    assert d["videos"][0]["falas"][0]["fala"] == "Gente, olha isso, chegou hoje."
+    assert "imagem_url" not in d["videos"][0]["entrada"]
+    p = tt.gerar_video(eri, quadro, d["videos"][1]["entrada"])
+    with sessao() as s:
+        trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
+        assert trabalho.tipo == "video" and trabalho.dados["item"] == "video_480"
+        assert trabalho.dados["entradas"][0]["planos"][2]["fala"] == "Me chama no direct, tá?"
