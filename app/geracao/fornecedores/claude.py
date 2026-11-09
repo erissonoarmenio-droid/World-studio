@@ -33,7 +33,7 @@ class ClienteClaude:
         texto: str,
         imagens: list[tuple[bytes, str]] | None = None,
         modelo: str = MODELO,
-        max_tokens: int = 4000,
+        max_tokens: int = 8000,  # 09/11: 2 roteiros completos passavam de 4000 e cortavam
     ) -> dict[str, Any]:
         """Manda texto (+ imagens) e devolve o JSON da resposta (o primeiro objeto {...})."""
         conteudo: list[dict[str, Any]] = []
@@ -69,6 +69,10 @@ class ClienteClaude:
         texto_resposta = "".join(
             b.get("text", "") for b in corpo.get("content", []) if b.get("type") == "text"
         )
+        if corpo.get("stop_reason") == "max_tokens":
+            raise ErroFornecedor(
+                f"resposta do Claude cortada no limite de {max_tokens} tokens", incerto=False
+            )
         return extrair_json(texto_resposta)
 
 
