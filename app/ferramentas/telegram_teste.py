@@ -364,6 +364,61 @@ def gerar_video(
         return {"chave": situacao.chave_unica, "criado_agora": criado, "estado": situacao.estado}
 
 
+def _eleven() -> Any:
+    from app.config import obter_config
+    from app.geracao.voz_real import ElevenLabs
+
+    chave = obter_config().elevenlabs_api_key
+    if chave is None:
+        raise SystemExit("ELEVENLABS_API_KEY não configurada no servidor")
+    return ElevenLabs(chave)
+
+
+def clonar_voz(de: int, audio: int, nome: str, pessoa_id: int | None = None) -> str:
+    """Clona a voz da pessoa (1 vez) a partir do áudio dela. Exige o consentimento 'clone'."""
+    from app.geracao.executores import _exigir_clone
+    from app.nucleo import midia
+
+    with sessao() as s:
+        pessoa = _dona_do_rosto(s, de, pessoa_id)
+        m = midia.obter_midia(s, audio, pessoa.loja_id)
+        tipo, conteudo = m.content_type, midia.ler(s, m.id, pessoa.loja_id)
+        pid = pessoa.id
+    _exigir_clone(pid)
+    return _eleven().clonar(nome, conteudo, tipo)
+
+
+def trocar_voz(de: int, video: int, voz_id: str, falas: str) -> dict[str, Any]:
+    """Troca a voz do vídeo pela voz clonada (voz-para-voz) e confere. Guarda o vídeo novo."""
+    from app.geracao.voz_real import trocar_voz_do_video
+    from app.nucleo import midia
+    from app.nucleo.eventos import SISTEMA as AUTOR_SISTEMA
+
+    ((_, conteudo),) = _ler_midias(de, [video])
+    r = trocar_voz_do_video(_eleven(), voz_id, conteudo, falas)
+    with sessao() as s:
+        from app.nucleo.pessoas import obter_pessoa_por_telegram
+
+        loja = obter_pessoa_por_telegram(s, de).loja_id
+        novo = midia.enviar(
+            s,
+            loja_id=loja,
+            conteudo=r.video,
+            tipo="video",
+            content_type="video/mp4",
+            origem="geracao",
+            autor=AUTOR_SISTEMA,
+        )
+        novo_id = novo.id
+    return {
+        "midia": novo_id,
+        "ritmo": r.ritmo,
+        "palavras": round(r.palavras, 3),
+        "aprovado": r.aprovado,
+        "ouvido": r.transcricao,
+    }
+
+
 def travar_rosto(
     telegram_id: int,
     base: int,
@@ -615,6 +670,17 @@ def main(argv: list[str] | None = None) -> int:
     vi.add_argument("--direcao", required=True)
     vi.add_argument("--angulo", required=True, choices=["problema_solucao", "prova_pessoal"])
     vi.add_argument("--pessoa", type=int)
+    vc = sub.add_parser("voz-clonar")
+    vc.add_argument("--de", type=int, required=True)
+    vc.add_argument("--audio", type=int, required=True, help="mídia do áudio da pessoa")
+    vc.add_argument("--nome", required=True)
+    vc.add_argument("--pessoa", type=int)
+    vt = sub.add_parser("voz-trocar")
+    vt.add_argument("--de", type=int, required=True)
+    vt.add_argument("--video", type=int, required=True)
+    vt.add_argument("--voz", required=True, help="voice_id da voz clonada")
+    vt.add_argument("--direcao", required=True)
+    vt.add_argument("--angulo", required=True, choices=["problema_solucao", "prova_pessoal"])
     me = sub.add_parser("medir")
     me.add_argument("--de", type=int, required=True)
     me.add_argument("--reais", required=True, help="fotos REAIS de frente, por vírgula")
@@ -706,6 +772,14 @@ def main(argv: list[str] | None = None) -> int:
             r = json.load(arq)
         entrada = next(v["entrada"] for v in r["videos"] if v["angulo"] == a.angulo)
         print(json.dumps(gerar_video(a.de, a.quadro, entrada, a.pessoa), ensure_ascii=False))
+    elif a.cmd == "voz-clonar":
+        print("VOZ_ID", clonar_voz(a.de, a.audio, a.nome, a.pessoa))
+    elif a.cmd == "voz-trocar":
+        with open(a.direcao, encoding="utf-8") as arq:
+            r = json.load(arq)
+        v = next(v for v in r["videos"] if v["angulo"] == a.angulo)
+        falas = " ".join(f["fala"] for f in v["falas"] if f["fala"])
+        print(json.dumps(trocar_voz(a.de, a.video, a.voz, falas), ensure_ascii=False))
     elif a.cmd == "medir":
         reais = [int(x) for x in a.reais.split(",") if x]
         for linha in medir_rostos(a.de, reais, a.midias):
