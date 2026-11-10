@@ -70,6 +70,8 @@ PROPAGANDA = (
     "corre que",
     "promoção imperdível",
 )
+# Palavras que a voz pronuncia errado (E44, 09/11: "chambray" virou "chamelet").
+ESTRANGEIRAS = ("chambray", "oversized", "tricoline", "viscolinho", "cropped", "slim fit")
 # Palavra curta logo depois do corte é engolida (E33, 01/11: o "Ó" sumiu 3 de 3 vezes).
 FRACAS_NO_INICIO = ("ó", "o", "é", "e", "ai", "ah", "oh", "né", "tá", "a", "ué", "hm", "hmm")
 MULETAS = ("gente", "olha", "ó", "tipo", "né", "sério", "ai,", "pera", "hmm", "cara", "pô", "mano")
@@ -455,6 +457,13 @@ REGRAS = registrar(
             checar=lambda p: (
                 sum(_palavras(f) for f in _falas(p)) <= (_e(p).duracao - 2) * PALAVRAS_POR_SEGUNDO
             ),
+        ),
+        Regra(
+            id="ugc.sem_palavra_estrangeira",
+            nivel="bloqueia",
+            faca="Falas sem palavra estrangeira/técnica que a voz erra: " + ", ".join(ESTRANGEIRAS),
+            origem='E44 — 09/11 (Seedance falou "chamelet" no lugar de "chambray")',
+            checar=lambda p: not any(x in f.lower() for f in _falas(p) for x in ESTRANGEIRAS),
         ),
         Regra(
             id="ugc.sem_propaganda",

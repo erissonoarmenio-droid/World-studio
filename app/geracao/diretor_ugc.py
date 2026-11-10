@@ -57,6 +57,9 @@ REGRAS (o sistema bloqueia se quebrar):
 6. Quem filma é uma AMIGA com o celular na mão (a câmera é fixa no sistema): no "contexto"
    NUNCA diga que ela segura o celular ou filma a si mesma.
 7. Use os móveis que existem no local (se a foto mostra poltrona, é "armchair", não "sofa").
+7b. Nas falas, NADA de palavra estrangeira ou técnica de tecido/moda (chambray, oversized,
+   tricoline, viscolinho…): a voz erra a pronúncia (E44, 09/11: "chambray" virou
+   "chamelet"). Diga como o cliente fala: "tecido leve", "algodão", "fresquinha", "solta".
 8. Descreva a peça em inglês com cor, tecido e detalhes que não podem mudar (gola, botões,
    bolsos, mangas). "peca_nunca" lista o que nunca muda (ex.: "colour, collar, buttons or
    fabric; no pocket appears").
