@@ -49,7 +49,7 @@ def test_troca_monta_video_e_confere(tmp_path):
     ])  # fmt: skip
 
     class Falso:
-        def trocar(self, voz_id, audio_wav):
+        def trocar(self, voz_id, audio_wav, ajuste=None):
             saida = tmp_path / "n.mp3"
             (tmp_path / "in.wav").write_bytes(audio_wav)
             vr._rodar(["-i", str(tmp_path / "in.wav"), str(saida)])

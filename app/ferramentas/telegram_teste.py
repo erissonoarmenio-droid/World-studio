@@ -388,14 +388,14 @@ def clonar_voz(de: int, audio: int, nome: str, pessoa_id: int | None = None) -> 
     return _eleven().clonar(nome, conteudo, tipo)
 
 
-def trocar_voz(de: int, video: int, voz_id: str, falas: str) -> dict[str, Any]:
+def trocar_voz(de: int, video: int, voz_id: str, falas: str, ajuste: Any = None) -> dict[str, Any]:
     """Troca a voz do vídeo pela voz clonada (voz-para-voz) e confere. Guarda o vídeo novo."""
     from app.geracao.voz_real import trocar_voz_do_video
     from app.nucleo import midia
     from app.nucleo.eventos import SISTEMA as AUTOR_SISTEMA
 
     ((_, conteudo),) = _ler_midias(de, [video])
-    r = trocar_voz_do_video(_eleven(), voz_id, conteudo, falas)
+    r = trocar_voz_do_video(_eleven(), voz_id, conteudo, falas, ajuste=ajuste)
     with sessao() as s:
         from app.nucleo.pessoas import obter_pessoa_por_telegram
 
@@ -681,6 +681,10 @@ def main(argv: list[str] | None = None) -> int:
     vt.add_argument("--voz", required=True, help="voice_id da voz clonada")
     vt.add_argument("--direcao", required=True)
     vt.add_argument("--angulo", required=True, choices=["problema_solucao", "prova_pessoal"])
+    vt.add_argument("--estabilidade", type=float, default=0.45)
+    vt.add_argument("--semelhanca", type=float, default=0.80)
+    vt.add_argument("--estilo", type=float, default=0.0)
+    vt.add_argument("--limpar-entrada", action="store_true")
     me = sub.add_parser("medir")
     me.add_argument("--de", type=int, required=True)
     me.add_argument("--reais", required=True, help="fotos REAIS de frente, por vírgula")
@@ -779,7 +783,10 @@ def main(argv: list[str] | None = None) -> int:
             r = json.load(arq)
         v = next(v for v in r["videos"] if v["angulo"] == a.angulo)
         falas = " ".join(f["fala"] for f in v["falas"] if f["fala"])
-        print(json.dumps(trocar_voz(a.de, a.video, a.voz, falas), ensure_ascii=False))
+        from app.geracao.voz_real import Ajuste
+
+        aj = Ajuste(a.estabilidade, a.semelhanca, a.estilo, a.limpar_entrada)
+        print(json.dumps(trocar_voz(a.de, a.video, a.voz, falas, aj), ensure_ascii=False))
     elif a.cmd == "medir":
         reais = [int(x) for x in a.reais.split(",") if x]
         for linha in medir_rostos(a.de, reais, a.midias):

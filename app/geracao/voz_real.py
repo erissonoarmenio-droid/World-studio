@@ -15,6 +15,7 @@ fica guardado para todos os vídeos. Se a pessoa cancelar, a voz é apagada no E
 
 from __future__ import annotations
 
+import json
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -47,6 +48,17 @@ def _rodar(args: list[str]) -> None:
     subprocess.run([_ffmpeg(), "-v", "error", "-y", *args], check=True, timeout=300)  # noqa: S603
 
 
+@dataclass(frozen=True)
+class Ajuste:
+    """Ajustes da troca (10/11, pesquisa): padrão do ElevenLabs (0,5/0,75) soou mecânico.
+    Diálogo: estabilidade ~0,45, semelhança ~0,8; estilo 0 quando a entrada já é expressiva."""
+
+    estabilidade: float = 0.45
+    semelhanca: float = 0.80
+    estilo: float = 0.0
+    limpar_entrada: bool = False
+
+
 class ElevenLabs:
     def __init__(self, chave: SecretStr, cliente: httpx.Client | None = None) -> None:
         self._chave = chave
@@ -73,12 +85,24 @@ class ElevenLabs:
         )
         return str(r.json()["voice_id"])
 
-    def trocar(self, voz_id: str, audio_wav: bytes) -> bytes:
+    def trocar(self, voz_id: str, audio_wav: bytes, ajuste: Ajuste | None = None) -> bytes:
         """Voice changer: mesma fala e ritmo, timbre da voz clonada. Devolve mp3."""
+        a = ajuste or Ajuste()
         r = self._post(
             f"/voice-changer/{voz_id}",
             params={"output_format": "mp3_44100_128"},
-            data={"model_id": MODELO_TROCA, "remove_background_noise": "true"},
+            data={
+                "model_id": MODELO_TROCA,
+                "remove_background_noise": "true" if a.limpar_entrada else "false",
+                "voice_settings": json.dumps(
+                    {
+                        "stability": a.estabilidade,
+                        "similarity_boost": a.semelhanca,
+                        "style": a.estilo,
+                        "use_speaker_boost": True,
+                    }
+                ),
+            },
             files={"audio": ("fala.wav", audio_wav, "audio/wav")},
         )
         return r.content
@@ -152,14 +176,19 @@ class VozTrocada:
 
 
 def trocar_voz_do_video(
-    el: ElevenLabs, voz_id: str, video: bytes, falas: str, ambiente: float = 0.25
+    el: ElevenLabs,
+    voz_id: str,
+    video: bytes,
+    falas: str,
+    ambiente: float = 0.25,
+    ajuste: Ajuste | None = None,
 ) -> VozTrocada:
     """Passos 2–4 do método. `falas` = texto do roteiro (para conferir as palavras)."""
     with tempfile.TemporaryDirectory() as d:
         p = Path(d)
         (p / "v.mp4").write_bytes(video)
         _rodar(["-i", str(p / "v.mp4"), "-vn", "-ac", "1", "-ar", "44100", str(p / "orig.wav")])
-        (p / "nova.mp3").write_bytes(el.trocar(voz_id, (p / "orig.wav").read_bytes()))
+        (p / "nova.mp3").write_bytes(el.trocar(voz_id, (p / "orig.wav").read_bytes(), ajuste))
         # voz nova tratada (E31) + som do lugar abaixado enquanto ela fala (sem "voz fantasma")
         filtro = (
             f"[1:a]{FILTRO_VOZ_LEVE.replace('loudnorm=I=-14:TP=-1.5:LRA=9', 'volume=1')},"
