@@ -72,7 +72,7 @@ PROPAGANDA = (
 )
 # Palavra curta logo depois do corte é engolida (E33, 01/11: o "Ó" sumiu 3 de 3 vezes).
 FRACAS_NO_INICIO = ("ó", "o", "é", "e", "ai", "ah", "oh", "né", "tá", "a", "ué", "hm", "hmm")
-MULETAS = ("gente", "olha", "ó", "tipo", "né", "sério", "ai,", "pera", "hmm")
+MULETAS = ("gente", "olha", "ó", "tipo", "né", "sério", "ai,", "pera", "hmm", "cara", "pô", "mano")
 
 LUZ_PADRAO = "Soft daylight from a window on the left mixed with the store's ceiling downlights"
 CONTEXTO_PADRAO = (
@@ -129,6 +129,56 @@ NEGATIVOS = (
     "stare. No identity or body drift between cuts. No morphing between cuts. No gimbal, dolly "
     "or artificial shallow focus. No text, subtitles, logos or UI."
 )
+
+
+# ── Perfil de atuação do HOMEM (E45, 10/11) ────────────────────────────────────────────
+# Eri (vídeo 52/53): "a fala e a gesticulação, o jeito de falar estão muito femininos".
+# Causa: os blocos acima foram escritos a partir da influencer mulher (v3) e o para_genero
+# só troca os pronomes. Para homem o perfil inteiro é outro: gestos, energia e voz.
+CORPO_VIVO_HOMEM = (
+    "His whole body is alive in every shot: he shifts his weight from one leg to the other, "
+    "his shoulders stay loose and relaxed, his free hand goes in and out of his pocket, "
+    "touches his collar or points briefly at the shirt, and he gives small nods with the "
+    "sentence. Each shot has one clear full-body action. He is never planted still."
+)
+ATUACAO_HOMEM = (
+    "ACTING: natural, relaxed and confident, like showing something to a buddy. He breathes "
+    "before speaking; uneven blinking; his eyes move every 2–3 seconds between the shirt, the "
+    "lens and the room, never staring at the lens for more than 2 seconds; calm, steady head; "
+    "brief half-smile; a short laugh through the nose at most once. Low-key energy, economical "
+    "gestures that come from the sentence. No head tilting, no swaying, no bouncy or cute "
+    "delivery, no presenter delivery, no influencer excitement, no fixed stare."
+)
+VOZ_HOMEM = (
+    "VOICE — a Brazilian man, relaxed and natural, medium-low pitch, calm conversational pace, "
+    "steady intonation with few rises at the end of sentences, slightly dry humour; speaks like "
+    "a guy talking to a friend, not like a host."
+)
+# Gestos e jeito que denunciam o perfil feminino num vídeo de homem (bloqueia, E45).
+GESTOS_FEMININOS = (
+    "tucks hair",
+    "behind his ear",
+    "behind her ear",
+    "sways",
+    "sway lightly",
+    "head tilt",
+    "tilts his head",
+    "lightly amused",
+    "giggle",
+    "playful",
+    "flirt",
+    "twirl",
+    "bats his",
+    "asymmetric smile",
+    "active eyebrows",
+)
+
+
+def _perfil(genero: str) -> tuple[str, str]:
+    """(corpo vivo, atuação) do gênero. Mulher = blocos do v3 aprovado."""
+    if genero == "homem":
+        return CORPO_VIVO_HOMEM, ATUACAO_HOMEM
+    return CORPO_VIVO, ATUACAO
 
 
 class Plano(BaseModel):
@@ -216,8 +266,9 @@ def montar_prompt(e: EntradaUGC) -> str:
     if com_voz:
         referencias += "\n" + VOZ_REF
     fonte = "in @audio1" if com_voz else "written"
+    corpo_vivo, atuacao = _perfil(e.genero)
     acao = (
-        f"ACTION, TIMED (spoken lines exactly as {fonte}). {CORPO_VIVO}\n"
+        f"ACTION, TIMED (spoken lines exactly as {fonte}). {corpo_vivo}\n"
         + "\nHARD CUT.\n".join(_plano(p) for p in e.planos)
     )
     blocos = [
@@ -227,7 +278,8 @@ def montar_prompt(e: EntradaUGC) -> str:
         CAMERA,
         _edicao(e),
         acao,
-        ATUACAO,
+        atuacao,
+        *([VOZ_HOMEM] if e.genero == "homem" else []),
         SO_FALAS.format(fonte=fonte),
         f"SFX — realistic phone microphone, quiet store room tone, {e.som_peca}, faint street "
         "ambience. No music.",
@@ -284,8 +336,24 @@ def _fala_comeca_forte(p: Pedido) -> bool:
 
 
 def _corpo_vivo(p: Pedido) -> bool:
-    return para_genero(normalizar_texto(CORPO_VIVO), _e(p).genero) in p.prompt and all(
+    bloco = para_genero(normalizar_texto(_perfil(_e(p).genero)[0]), _e(p).genero)
+    return bloco in p.prompt and all(
         any(v in pl.acao.lower() for v in ACOES_DE_CORPO) for pl in _e(p).planos
+    )
+
+
+def _perfil_do_genero(p: Pedido) -> bool:
+    """Homem: blocos masculinos + voz de homem, e nenhum gesto feminino nas ações do diretor
+    (o bloco masculino diz "no head tilting", então a busca é só nas ações e reações)."""
+    e = _e(p)
+    if e.genero != "homem":
+        return True
+    acoes = " ".join(f"{pl.acao} {pl.depois}" for pl in e.planos).lower()
+    feminino = normalizar_texto(ATUACAO)[:60]
+    return (
+        "VOICE — a Brazilian man" in p.prompt
+        and para_genero(feminino, "homem") not in p.prompt
+        and not any(g in acoes for g in GESTOS_FEMININOS)
     )
 
 
@@ -331,6 +399,14 @@ REGRAS = registrar(
             faca="Bloco 'corpo vivo' fixo e uma ação de corpo inteiro em cada plano.",
             origem="E30 — 31/10 (Eri: 'ela fica parada demais'; v3 aprovado em 01/11)",
             checar=_corpo_vivo,
+        ),
+        Regra(
+            id="ugc.perfil_do_genero",
+            nivel="bloqueia",
+            faca="Homem: perfil de atuação e voz masculinos; nada de gesto/jeito do perfil "
+            "feminino (" + ", ".join(GESTOS_FEMININOS[:6]) + "…).",
+            origem="E45 — 10/11 (Eri: 'a fala e a gesticulação estão muito femininas')",
+            checar=_perfil_do_genero,
         ),
         Regra(
             id="ugc.sem_trava_de_corpo",

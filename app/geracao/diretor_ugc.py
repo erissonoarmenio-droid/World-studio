@@ -102,6 +102,27 @@ turn away toward the rack with a lopsided smile and a glance back."}]
 """
 
 
+# Perfil do HOMEM (E45, 10/11 — Eri: "a fala e a gesticulação estão muito femininas").
+HOMEM = """
+O INFLUENCER É UM HOMEM. Escreva como um cara brasileiro fala de verdade com um amigo,
+não como influencer mulher com "he" no lugar de "she":
+- Falas: frases curtas e diretas, menos exclamação, tom calmo e seguro, humor seco. Muletas
+  de homem, sem exagerar gíria: "olha só", "cara", "pô", "tipo", "sério", "né". Evite abrir
+  com "Gente" e evite "amei", "apaixonado", "lindo demais", "fofo", diminutivos ("levinho",
+  "certinho") e "ó" repetido.
+- Masculino na pessoa ("fiquei bem com ela", "tô usando"); o artigo da peça segue a PEÇA:
+  camisa/calça → "separei UMA pra mim"; casaco/short → "separei UM pra mim".
+- Ações em inglês com he/his e gestos de homem: troca o peso de perna, mão no bolso, ajeita a
+  gola, aponta a peça com uma mão, acena de leve com a cabeça, meio sorriso, ri curto pelo
+  nariz no máximo uma vez. NUNCA: balançar o corpo/quadril (sway), inclinar a cabeça (head
+  tilt), cabelo atrás da orelha, jeito fofo/brincalhão (playful), sobrancelha muito ativa.
+- Quem filma é um AMIGO.
+Exemplo de plano de homem: {"acao": "He walks in from the rack holding the shirt by the
+hanger, shifts his weight and lifts it toward the lens:", "fala": "Olha só, chegou hoje.
+Essa aqui eu já separei pra mim."}
+"""
+
+
 class CerebroJSON(Protocol):
     def json(
         self, sistema: str, texto: str, imagens: list[tuple[bytes, str]] | None = None
@@ -194,13 +215,7 @@ class DiretorUGC:
             f"LOCAL: {local or ('ver a foto' if foto_local else 'a loja do 1º quadro')}"
         )
         if genero == "homem":
-            texto += (
-                "\nA INFLUENCER É UM HOMEM: as falas em português ficam no masculino ('tô "
-                "apaixonado', 'fiquei feliz') e as ações em inglês usam he/his; quem filma é "
-                "um AMIGO. O artigo da peça segue a PEÇA, não ele: camisa/calça → 'separei "
-                "UMA pra mim'; casaco/short → 'separei UM pra mim' (09/11: saiu 'um' para "
-                "camisa)."
-            )
+            texto += HOMEM
         imagens = [foto_local] if foto_local else None
         dados = self.cerebro.json(SISTEMA, texto, imagens)
         videos, falhas = _avaliar(dados, imagem_url, genero)

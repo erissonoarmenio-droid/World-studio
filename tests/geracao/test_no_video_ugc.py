@@ -186,11 +186,46 @@ def test_fala_com_aspas_recusada():
         Plano(inicio=0, fim=4, acao="She walks to the rack and says:", fala='ela disse "oi"')
 
 
+def _homem(**mudar):
+    """O v3 com as ações de homem (sem balançar o quadril nem inclinar a cabeça)."""
+    e = _v3(genero="homem", **mudar)
+    planos = list(e.planos)
+    planos[1] = planos[1].model_copy(
+        update={
+            "acao": "He turns his body sideways to the camera and holds the shirt up "
+            "against his torso, shifting his weight as he looks down at it:"
+        }
+    )
+    planos[3] = planos[3].model_copy(
+        update={
+            "acao": "He tosses the hanger over his shoulder, leans slightly toward the "
+            "lens and says, relaxed:",
+            "depois": "A short laugh through the nose, then he turns away toward the rack.",
+        }
+    )
+    return e.model_copy(update={"planos": planos})
+
+
+def test_homem_com_gestos_femininos_e_barrado():
+    pedido = NoVideoUGC().montar_pedido(_v3(genero="homem"))
+    assert "ugc.perfil_do_genero" in _ids(NoVideoUGC().checar(pedido))
+
+
+def test_homem_tem_perfil_de_atuacao_e_voz_masculinos():
+    pedido, relatorio = NoVideoUGC().preparar(_homem())
+    assert relatorio.falhas == []
+    assert "VOICE — a Brazilian man" in pedido.prompt
+    assert "like showing something to a buddy" in pedido.prompt
+    assert "tucks hair" not in pedido.prompt and "lightly amused" not in pedido.prompt
+    mulher = NoVideoUGC().preparar(_v3())[0].prompt
+    assert "VOICE — a Brazilian man" not in mulher and "tucks hair" in mulher
+
+
 def test_homem_troca_pronomes_e_mantem_falas():
     import re
 
     mulher = NoVideoUGC().preparar(_v3())[0].prompt
-    pedido, relatorio = NoVideoUGC().preparar(_v3(genero="homem"))
+    pedido, relatorio = NoVideoUGC().preparar(_homem())
     assert relatorio.falhas == []
     assert not re.search(r"\b(she|her|herself|woman|women)\b", pedido.prompt, re.I)
     assert "THE MAN AND THE" in pedido.prompt
