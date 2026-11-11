@@ -33,7 +33,7 @@ class ClienteClaude:
         texto: str,
         imagens: list[tuple[bytes, str]] | None = None,
         modelo: str = MODELO,
-        max_tokens: int = 8000,  # 09/11: 2 roteiros completos passavam de 4000 e cortavam
+        max_tokens: int = 16000,  # 2 roteiros completos: 4000 (09/11) e 8000 (11/11) cortaram
     ) -> dict[str, Any]:
         """Manda texto (+ imagens) e devolve o JSON da resposta (o primeiro objeto {...})."""
         conteudo: list[dict[str, Any]] = []
