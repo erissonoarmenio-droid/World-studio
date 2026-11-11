@@ -118,6 +118,8 @@ class ElevenLabs:
         }
         if modelo != MODELO_FALA:
             corpo["text"] = re.sub(r"\[[^\]]*\]\s*", "", texto)  # marcas só no v3
+        else:  # E48 (11/11): sem forçar o idioma, "braço" saía "brau" e "algodão" "algodo"
+            corpo["language_code"] = "pt"
         try:
             r = self._post(
                 f"/text-to-speech/{voz_id}",
