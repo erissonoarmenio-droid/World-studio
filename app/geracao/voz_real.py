@@ -257,6 +257,8 @@ def montar_voz_guia(
     duracao: float,
     genero: str = "homem",
     folga: float = 0.25,
+    modelo: str = MODELO_FALA,
+    jeito: str | None = None,
 ) -> tuple[bytes, list[str]]:
     """Cada fala gerada pelo clone e colocada no início do seu plano. Devolve (mp3, avisos)."""
     avisos: list[str] = []
@@ -267,7 +269,8 @@ def montar_voz_guia(
         fim_anterior = 0.0
         for i, (inicio, fim, texto) in enumerate(falas):
             arq = p / f"f{i}.mp3"
-            arq.write_bytes(el.falar(voz_id, JEITO_GUIA.get(genero, "") + texto))
+            marca = JEITO_GUIA.get(genero, "") if jeito is None else jeito
+            arq.write_bytes(el.falar(voz_id, marca + texto, modelo))
             dur = _duracao(arq)
             comeco = max(inicio + folga, fim_anterior + 0.1)
             if comeco + dur > fim + 0.3:

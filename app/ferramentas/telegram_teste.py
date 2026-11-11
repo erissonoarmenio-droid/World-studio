@@ -392,7 +392,13 @@ def clonar_voz(de: int, audio: int, nome: str, pessoa_id: int | None = None) -> 
     return _eleven().clonar(nome, conteudo, tipo)
 
 
-def voz_guia(de: int, voz_id: str, entrada: dict[str, Any]) -> dict[str, Any]:
+def voz_guia(
+    de: int,
+    voz_id: str,
+    entrada: dict[str, Any],
+    modelo: str = "eleven_v3",
+    jeito: str | None = None,
+) -> dict[str, Any]:
     """Falas do roteiro ditas pelo clone, nos tempos dos planos (voz-guia do vídeo)."""
     from app.geracao.voz_real import montar_voz_guia
     from app.nucleo import midia
@@ -401,7 +407,13 @@ def voz_guia(de: int, voz_id: str, entrada: dict[str, Any]) -> dict[str, Any]:
 
     falas = [(p["inicio"], p["fim"], p["fala"]) for p in entrada["planos"] if p.get("fala")]
     audio, avisos = montar_voz_guia(
-        _eleven(), voz_id, falas, entrada["duracao"], entrada.get("genero", "homem")
+        _eleven(),
+        voz_id,
+        falas,
+        entrada["duracao"],
+        entrada.get("genero", "homem"),
+        modelo=modelo,
+        jeito=jeito,
     )
     with sessao() as s:
         loja = obter_pessoa_por_telegram(s, de).loja_id
@@ -705,6 +717,8 @@ def main(argv: list[str] | None = None) -> int:
     vg.add_argument("--voz", required=True)
     vg.add_argument("--direcao", required=True)
     vg.add_argument("--angulo", required=True, choices=["problema_solucao", "prova_pessoal"])
+    vg.add_argument("--modelo", default="eleven_v3")
+    vg.add_argument("--jeito", default=None, help='marcas do v3, ex. "[calm] "; "" = nenhuma')
     vc = sub.add_parser("voz-clonar")
     vc.add_argument("--de", type=int, required=True)
     vc.add_argument("--audio", type=int, required=True, help="mídia do áudio da pessoa")
@@ -822,7 +836,7 @@ def main(argv: list[str] | None = None) -> int:
         with open(a.direcao, encoding="utf-8") as arq:
             r = json.load(arq)
         entrada = next(v["entrada"] for v in r["videos"] if v["angulo"] == a.angulo)
-        print(json.dumps(voz_guia(a.de, a.voz, entrada), ensure_ascii=False))
+        print(json.dumps(voz_guia(a.de, a.voz, entrada, a.modelo, a.jeito), ensure_ascii=False))
     elif a.cmd == "voz-clonar":
         print("VOZ_ID", clonar_voz(a.de, a.audio, a.nome, a.pessoa))
     elif a.cmd == "voz-trocar":

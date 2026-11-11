@@ -68,7 +68,7 @@ def test_voz_guia_poe_cada_fala_no_seu_plano(tmp_path):
         def __init__(self):
             self.textos = []
 
-        def falar(self, voz_id, texto):
+        def falar(self, voz_id, texto, modelo=None):
             self.textos.append(texto)
             (tmp_path / "w.wav").write_bytes(_wav([(1.0, True)]))
             saida = tmp_path / "w.mp3"
