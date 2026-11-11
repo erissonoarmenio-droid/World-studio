@@ -436,7 +436,12 @@ def trocar_voz(de: int, video: int, voz_id: str, falas: str, ajuste: Any = None)
     from app.nucleo.eventos import SISTEMA as AUTOR_SISTEMA
 
     ((_, conteudo),) = _ler_midias(de, [video])
-    r = trocar_voz_do_video(_eleven(), voz_id, conteudo, falas, ajuste=ajuste)
+    from app.config import obter_config
+    from app.geracao.voz_real import ouvinte_fonetico, palavras_erradas
+
+    g = obter_config().google_api_key
+    ouvinte = ouvinte_fonetico(g) if g else None
+    r = trocar_voz_do_video(_eleven(), voz_id, conteudo, falas, ajuste=ajuste, ouvinte=ouvinte)
     with sessao() as s:
         from app.nucleo.pessoas import obter_pessoa_por_telegram
 
@@ -456,6 +461,7 @@ def trocar_voz(de: int, video: int, voz_id: str, falas: str, ajuste: Any = None)
         "ritmo": r.ritmo,
         "palavras": round(r.palavras, 3),
         "aprovado": r.aprovado,
+        "erradas": palavras_erradas(falas, r.transcricao),
         "ouvido": r.transcricao,
     }
 

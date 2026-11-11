@@ -132,6 +132,10 @@ class ElevenLabs:
             return self.falar(voz_id, texto, "eleven_multilingual_v2")  # v3 indisponível
         return r.content
 
+    def isolar(self, audio: bytes, tipo: str = "audio/wav") -> bytes:
+        """Só a voz, sem som de cena (E49: a troca com o som do Seedance trocava palavras)."""
+        return self._post("/audio-isolation", files={"audio": ("a", audio, tipo)}).content
+
     def transcrever(self, audio: bytes) -> str:
         r = self._post(
             "/speech-to-text",
@@ -207,13 +211,18 @@ def trocar_voz_do_video(
     falas: str,
     ambiente: float = 0.25,
     ajuste: Ajuste | None = None,
+    ouvinte: Any = None,
 ) -> VozTrocada:
     """Passos 2–4 do método. `falas` = texto do roteiro (para conferir as palavras)."""
     with tempfile.TemporaryDirectory() as d:
         p = Path(d)
         (p / "v.mp4").write_bytes(video)
         _rodar(["-i", str(p / "v.mp4"), "-vn", "-ac", "1", "-ar", "44100", str(p / "orig.wav")])
-        (p / "nova.mp3").write_bytes(el.trocar(voz_id, (p / "orig.wav").read_bytes(), ajuste))
+        # E49 (11/11): com o som da cena junto, a troca virou "fiquei bem" em "treinei";
+        # isolando a voz antes, o juiz fonético ouviu as mesmas palavras do original.
+        (p / "iso.mp3").write_bytes(el.isolar((p / "orig.wav").read_bytes()))
+        _rodar(["-i", str(p / "iso.mp3"), "-ac", "1", "-ar", "44100", str(p / "iso.wav")])
+        (p / "nova.mp3").write_bytes(el.trocar(voz_id, (p / "iso.wav").read_bytes(), ajuste))
         # voz nova tratada (E31) + som do lugar abaixado enquanto ela fala (sem "voz fantasma")
         filtro = (
             f"[1:a]{FILTRO_VOZ_LEVE.replace('loudnorm=I=-14:TP=-1.5:LRA=9', 'volume=1')},"
@@ -229,7 +238,7 @@ def trocar_voz_do_video(
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", str(p / "final.mp4"),
         ])  # fmt: skip
         r = ritmo(p / "orig.wav", p / "nova.mp3")
-        ouvido = el.transcrever((p / "nova.mp3").read_bytes())
+        ouvido = (ouvinte or el.transcrever)((p / "nova.mp3").read_bytes())
         return VozTrocada(
             (p / "final.mp4").read_bytes(), round(r, 3), acerto_palavras(falas, ouvido), ouvido
         )
@@ -377,3 +386,59 @@ class FishAudio:
             },
         )
         return self._ok(r, "falar").content
+
+
+# ── Juiz fonético (11/11, E49): ouve como SOA, sem corrigir ─────────────────────────────
+# O transcritor do ElevenLabs (Scribe) "conserta" a palavra: escreveu "braço" onde o Eri
+# ouviu "brau" (68). O Gemini, pedido para escrever como soa, ouviu "augodo"/"brao" (= Eri).
+PROMPT_FONETICO = (
+    "Você é um fonoaudiólogo brasileiro exigente. Ouça o áudio e escreva EXATAMENTE como cada "
+    "palavra SOA, sílaba por sílaba, em ortografia de português. NÃO corrija para a palavra "
+    "que você acha que é: se alguém fala brau no lugar de braço, escreva brau. Responda SÓ a "
+    "transcrição."
+)
+
+
+def ouvinte_fonetico(chave_google: SecretStr, modelo: str = "gemini-3.8-flash") -> Any:
+    import base64
+
+    def ouvir(audio: bytes) -> str:
+        r = httpx.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent",
+            headers={"x-goog-api-key": chave_google.get_secret_value()},
+            json={
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": PROMPT_FONETICO},
+                            {
+                                "inlineData": {
+                                    "mimeType": "audio/mpeg",
+                                    "data": base64.b64encode(audio).decode(),
+                                }
+                            },
+                        ]
+                    }
+                ],
+                "generationConfig": {"temperature": 0},
+            },
+            timeout=120,
+        )
+        if r.status_code >= 400:
+            raise RuntimeError(f"juiz fonético → {r.status_code}")
+        return str(r.json()["candidates"][0]["content"]["parts"][0]["text"])
+
+    return ouvir
+
+
+def palavras_erradas(esperado: str, ouvido: str) -> list[str]:
+    """Trechos do roteiro que o juiz ouviu diferente ("braço → brau")."""
+    import difflib
+
+    a, b = _palavras(esperado), _palavras(ouvido)
+    sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    return [
+        f"{' '.join(a[i1:i2])} → {' '.join(b[j1:j2]) or '(sumiu)'}"
+        for op, i1, i2, j1, j2 in sm.get_opcodes()
+        if op != "equal" and (i2 > i1)
+    ]

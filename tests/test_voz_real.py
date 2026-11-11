@@ -49,6 +49,11 @@ def test_troca_monta_video_e_confere(tmp_path):
     ])  # fmt: skip
 
     class Falso:
+        def isolar(self, audio, tipo="audio/wav"):
+            (tmp_path / "iso_in.wav").write_bytes(audio)
+            vr._rodar(["-i", str(tmp_path / "iso_in.wav"), str(tmp_path / "iso.mp3")])
+            return (tmp_path / "iso.mp3").read_bytes()
+
         def trocar(self, voz_id, audio_wav, ajuste=None):
             saida = tmp_path / "n.mp3"
             (tmp_path / "in.wav").write_bytes(audio_wav)
@@ -107,3 +112,11 @@ def test_fish_clona_e_fala_com_o_modelo_certo():
     assert fish.falar("m1", "[calm] Olha só.") == b"ID3audio"
     assert pedidos[1].headers["model"] == "s2.1-pro"
     assert b"[calm]" not in pedidos[1].content and b"Olha" in pedidos[1].content
+
+
+def test_palavras_erradas_aponta_o_trecho():
+    assert vr.palavras_erradas("a manga no meio do braço", "a manga no meio do brau") == [
+        "braco → brau"
+    ]
+    assert vr.palavras_erradas("fiquei bem com ela", "treinei com ela") == ["fiquei bem → treinei"]
+    assert vr.palavras_erradas("chama no direct", "chama no direct") == []
