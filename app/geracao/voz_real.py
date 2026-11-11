@@ -257,7 +257,7 @@ def montar_voz_guia(
     duracao: float,
     genero: str = "homem",
     folga: float = 0.25,
-    modelo: str = "eleven_multilingual_v2",  # E46: aprovado por Eri (59); v3 + marcas soou afeminado
+    modelo: str = "eleven_multilingual_v2",  # E46: aprovado por Eri (59); v3 soou afeminado
     jeito: str | None = "",
 ) -> tuple[bytes, list[str]]:
     """Cada fala gerada pelo clone e colocada no início do seu plano. Devolve (mp3, avisos)."""
