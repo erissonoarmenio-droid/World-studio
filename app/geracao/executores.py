@@ -397,11 +397,19 @@ def executar_video(trabalho: Trabalho) -> Resultado:
         tipo_quadro = m.content_type
         quadro = midia.ler(s, m.id, trabalho.loja_id)
     url_quadro = fornecedor.subir_midia(quadro, "quadro1.png", tipo_quadro)  # type: ignore[attr-defined]
+    url_guia = None
+    if d.get("voz_guia_midia_id"):  # 11/11: voz-guia → o Seedance copia ritmo e entonação
+        with abrir_sessao() as s:
+            g = midia.obter_midia(s, d["voz_guia_midia_id"], trabalho.loja_id)
+            guia, tipo_guia = midia.ler(s, g.id, trabalho.loja_id), g.content_type
+        url_guia = fornecedor.subir_midia(guia, "voz_guia.mp3", tipo_guia)  # type: ignore[attr-defined]
 
     no = NoVideoUGC()
     pedidos_prontos = []
     for campos in entradas:  # confere TODOS antes de gastar qualquer um
-        entrada = EntradaUGC(**{**campos, "resolucao": resolucao, "imagem_url": url_quadro})
+        entrada = EntradaUGC(
+            **{**campos, "resolucao": resolucao, "imagem_url": url_quadro, "audio_url": url_guia}
+        )
         pedidos_prontos.append(no.preparar(entrada)[0])
     estimado = trabalho.custo_estimado or sum(p.custo_estimado for p in pedidos_prontos)
     teto = estimado * FOLGA_APROVACAO / len(pedidos_prontos)

@@ -16,6 +16,7 @@ fica guardado para todos os vídeos. Se a pessoa cancelar, a voz é apagada no E
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -30,6 +31,7 @@ from app.geracao.edicao import FILTRO_VOZ_LEVE
 
 API = "https://api.elevenlabs.io/v1"
 MODELO_TROCA = "eleven_multilingual_sts_v2"
+MODELO_FALA = "eleven_v3"  # voz-guia: entende marcas de jeito ([calm], [casual])
 MODELO_TRANSCRICAO = "scribe_v1"
 RITMO_MINIMO = 0.90  # envelope da voz nova × antiga (31/10: 0,94)
 
@@ -105,6 +107,27 @@ class ElevenLabs:
             },
             files={"audio": ("fala.wav", audio_wav, "audio/wav")},
         )
+        return r.content
+
+    def falar(self, voz_id: str, texto: str, modelo: str = MODELO_FALA) -> bytes:
+        """Texto → fala com a voz clonada (voz-guia). eleven_v3 entende marcas como [calm]."""
+        corpo: dict[str, Any] = {
+            "text": texto,
+            "model_id": modelo,
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.8},
+        }
+        if modelo != MODELO_FALA:
+            corpo["text"] = re.sub(r"\[[^\]]*\]\s*", "", texto)  # marcas só no v3
+        try:
+            r = self._post(
+                f"/text-to-speech/{voz_id}",
+                params={"output_format": "mp3_44100_128"},
+                json=corpo,
+            )
+        except RuntimeError:
+            if modelo != MODELO_FALA:
+                raise
+            return self.falar(voz_id, texto, "eleven_multilingual_v2")  # v3 indisponível
         return r.content
 
     def transcrever(self, audio: bytes) -> str:
@@ -208,3 +231,68 @@ def trocar_voz_do_video(
         return VozTrocada(
             (p / "final.mp4").read_bytes(), round(r, 3), acerto_palavras(falas, ouvido), ouvido
         )
+
+
+# ── Voz-guia (11/11): o Seedance copia ritmo e ENTONAÇÃO do @audio1 (E28) ─────────────
+# Eri (10/11, vídeo 56): "melhor, mas ainda meio afeminado". A troca de voz muda o timbre e
+# mantém a melodia da atuação do Seedance. Com a voz-guia (as falas ditas pelo clone, num
+# jeito calmo de homem), a atuação já nasce com a melodia certa; depois a troca de voz.
+JEITO_GUIA = {
+    "homem": "[calm] [casual] ",
+    "mulher": "[warm] [casual] ",
+}
+
+
+def _duracao(caminho: Path) -> float:
+    with tempfile.TemporaryDirectory() as d:
+        bruto = Path(d) / "a.raw"
+        _rodar(["-i", str(caminho), "-ac", "1", "-ar", "16000", "-f", "s16le", str(bruto)])
+        return bruto.stat().st_size / 32000
+
+
+def montar_voz_guia(
+    el: ElevenLabs,
+    voz_id: str,
+    falas: list[tuple[float, float, str]],
+    duracao: float,
+    genero: str = "homem",
+    folga: float = 0.25,
+) -> tuple[bytes, list[str]]:
+    """Cada fala gerada pelo clone e colocada no início do seu plano. Devolve (mp3, avisos)."""
+    avisos: list[str] = []
+    with tempfile.TemporaryDirectory() as d:
+        p = Path(d)
+        entradas: list[str] = []
+        atrasos: list[str] = []
+        fim_anterior = 0.0
+        for i, (inicio, fim, texto) in enumerate(falas):
+            arq = p / f"f{i}.mp3"
+            arq.write_bytes(el.falar(voz_id, JEITO_GUIA.get(genero, "") + texto))
+            dur = _duracao(arq)
+            comeco = max(inicio + folga, fim_anterior + 0.1)
+            if comeco + dur > fim + 0.3:
+                avisos.append(f"fala {i + 1} passa do plano ({dur:.1f}s em {fim - inicio:.1f}s)")
+            fim_anterior = comeco + dur
+            entradas += ["-i", str(arq)]
+            ms = int(comeco * 1000)
+            atrasos.append(f"[{i}:a]adelay={ms}|{ms},aresample=44100[a{i}]")
+        mix = ";".join(atrasos) + ";" + "".join(f"[a{i}]" for i in range(len(falas)))
+        mix += f"amix=inputs={len(falas)}:normalize=0,apad=whole_dur={duracao}[o]"
+        saida = p / "guia.mp3"
+        _rodar(
+            [
+                *entradas,
+                "-filter_complex",
+                mix,
+                "-map",
+                "[o]",
+                "-t",
+                str(duracao),
+                "-ac",
+                "1",
+                str(saida),
+            ]
+        )
+        if fim_anterior > duracao:
+            avisos.append("as falas passam do fim do vídeo")
+        return saida.read_bytes(), avisos

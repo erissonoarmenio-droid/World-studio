@@ -342,7 +342,11 @@ def dirigir(
 
 
 def gerar_video(
-    de: int, quadro: int, entrada: dict[str, Any], pessoa_id: int | None = None
+    de: int,
+    quadro: int,
+    entrada: dict[str, Any],
+    pessoa_id: int | None = None,
+    voz_guia: int | None = None,
 ) -> dict[str, Any]:
     """Vídeo 480p (item video_480) com o roteiro já aprovado. GASTA (≈ US$ 2,15 na Tein)."""
     from app.pedidos import criar_pedido
@@ -386,6 +390,31 @@ def clonar_voz(de: int, audio: int, nome: str, pessoa_id: int | None = None) -> 
         pid = pessoa.id
     _exigir_clone(pid)
     return _eleven().clonar(nome, conteudo, tipo)
+
+
+def voz_guia(de: int, voz_id: str, entrada: dict[str, Any]) -> dict[str, Any]:
+    """Falas do roteiro ditas pelo clone, nos tempos dos planos (voz-guia do vídeo)."""
+    from app.geracao.voz_real import montar_voz_guia
+    from app.nucleo import midia
+    from app.nucleo.eventos import SISTEMA as AUTOR_SISTEMA
+    from app.nucleo.pessoas import obter_pessoa_por_telegram
+
+    falas = [(p["inicio"], p["fim"], p["fala"]) for p in entrada["planos"] if p.get("fala")]
+    audio, avisos = montar_voz_guia(
+        _eleven(), voz_id, falas, entrada["duracao"], entrada.get("genero", "homem")
+    )
+    with sessao() as s:
+        loja = obter_pessoa_por_telegram(s, de).loja_id
+        m = midia.enviar(
+            s,
+            loja_id=loja,
+            conteudo=audio,
+            tipo="voz",
+            content_type="audio/mpeg",
+            origem="geracao",
+            autor=AUTOR_SISTEMA,
+        )
+        return {"midia": m.id, "avisos": avisos}
 
 
 def trocar_voz(de: int, video: int, voz_id: str, falas: str, ajuste: Any = None) -> dict[str, Any]:
@@ -670,6 +699,12 @@ def main(argv: list[str] | None = None) -> int:
     vi.add_argument("--direcao", required=True)
     vi.add_argument("--angulo", required=True, choices=["problema_solucao", "prova_pessoal"])
     vi.add_argument("--pessoa", type=int)
+    vi.add_argument("--voz-guia", type=int, help="mídia da voz-guia (@audio1)")
+    vg = sub.add_parser("voz-guia")
+    vg.add_argument("--de", type=int, required=True)
+    vg.add_argument("--voz", required=True)
+    vg.add_argument("--direcao", required=True)
+    vg.add_argument("--angulo", required=True, choices=["problema_solucao", "prova_pessoal"])
     vc = sub.add_parser("voz-clonar")
     vc.add_argument("--de", type=int, required=True)
     vc.add_argument("--audio", type=int, required=True, help="mídia do áudio da pessoa")
@@ -775,7 +810,16 @@ def main(argv: list[str] | None = None) -> int:
         with open(a.direcao, encoding="utf-8") as arq:
             r = json.load(arq)
         entrada = next(v["entrada"] for v in r["videos"] if v["angulo"] == a.angulo)
-        print(json.dumps(gerar_video(a.de, a.quadro, entrada, a.pessoa), ensure_ascii=False))
+        print(
+            json.dumps(
+                gerar_video(a.de, a.quadro, entrada, a.pessoa, a.voz_guia), ensure_ascii=False
+            )
+        )
+    elif a.cmd == "voz-guia":
+        with open(a.direcao, encoding="utf-8") as arq:
+            r = json.load(arq)
+        entrada = next(v["entrada"] for v in r["videos"] if v["angulo"] == a.angulo)
+        print(json.dumps(voz_guia(a.de, a.voz, entrada), ensure_ascii=False))
     elif a.cmd == "voz-clonar":
         print("VOZ_ID", clonar_voz(a.de, a.audio, a.nome, a.pessoa))
     elif a.cmd == "voz-trocar":

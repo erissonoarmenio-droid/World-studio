@@ -61,3 +61,24 @@ def test_troca_monta_video_e_confere(tmp_path):
     r = vr.trocar_voz_do_video(Falso(), "voz1", video.read_bytes(), "Gente, olha essa camisa.")
     assert r.palavras == 1.0 and r.ritmo > 0.9 and r.aprovado
     assert len(r.video) > 1000
+
+
+def test_voz_guia_poe_cada_fala_no_seu_plano(tmp_path):
+    class Falso:
+        def __init__(self):
+            self.textos = []
+
+        def falar(self, voz_id, texto):
+            self.textos.append(texto)
+            (tmp_path / "w.wav").write_bytes(_wav([(1.0, True)]))
+            saida = tmp_path / "w.mp3"
+            vr._rodar(["-i", str(tmp_path / "w.wav"), str(saida)])
+            return saida.read_bytes()
+
+    el = Falso()
+    audio, avisos = vr.montar_voz_guia(el, "v", [(0, 3, "Olha só."), (3, 6, "Chama no direct.")], 6)
+    assert el.textos[0].startswith("[calm]") and avisos == []
+    (tmp_path / "g.mp3").write_bytes(audio)
+    assert 5.5 < vr._duracao(tmp_path / "g.mp3") < 6.5
+    env = vr._envelope(tmp_path / "g.mp3")
+    assert env[int(1.0 / 0.02)] > 100 and env[int(2.6 / 0.02)] < 50  # fala, depois silêncio
