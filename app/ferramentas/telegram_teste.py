@@ -720,6 +720,9 @@ def main(argv: list[str] | None = None) -> int:
     vt.add_argument("--semelhanca", type=float, default=0.80)
     vt.add_argument("--estilo", type=float, default=0.0)
     vt.add_argument("--limpar-entrada", action="store_true")
+    vto = sub.add_parser("voz-tom")
+    vto.add_argument("--de", type=int, required=True)
+    vto.add_argument("midias", type=int, nargs="+")
     me = sub.add_parser("medir")
     me.add_argument("--de", type=int, required=True)
     me.add_argument("--reais", required=True, help="fotos REAIS de frente, por vírgula")
@@ -831,6 +834,16 @@ def main(argv: list[str] | None = None) -> int:
 
         aj = Ajuste(a.estabilidade, a.semelhanca, a.estilo, a.limpar_entrada)
         print(json.dumps(trocar_voz(a.de, a.video, a.voz, falas, aj), ensure_ascii=False))
+    elif a.cmd == "voz-tom":
+        import tempfile
+        from pathlib import Path
+
+        from app.geracao.voz_real import tom
+
+        for mid, conteudo in _ler_midias(a.de, a.midias):
+            with tempfile.TemporaryDirectory() as d:
+                (Path(d) / "x").write_bytes(conteudo)
+                print("TOM", mid, json.dumps(tom(Path(d) / "x")))
     elif a.cmd == "medir":
         reais = [int(x) for x in a.reais.split(",") if x]
         for linha in medir_rostos(a.de, reais, a.midias):

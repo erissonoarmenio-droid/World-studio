@@ -82,3 +82,9 @@ def test_voz_guia_poe_cada_fala_no_seu_plano(tmp_path):
     assert 5.5 < vr._duracao(tmp_path / "g.mp3") < 6.5
     env = vr._envelope(tmp_path / "g.mp3")
     assert env[int(1.0 / 0.02)] > 100 and env[int(2.6 / 0.02)] < 50  # fala, depois silêncio
+
+
+def test_tom_mede_a_altura_da_voz(tmp_path):
+    a = tmp_path / "t.wav"
+    a.write_bytes(_wav([(1.0, True)]))  # tom de 220 Hz
+    assert 200 <= vr.tom(a)["mediana"] <= 240

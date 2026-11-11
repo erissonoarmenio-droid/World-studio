@@ -296,3 +296,31 @@ def montar_voz_guia(
         if fim_anterior > duracao:
             avisos.append("as falas passam do fim do vídeo")
         return saida.read_bytes(), avisos
+
+
+# ── Tom da voz (11/11, E46): homem fala ~85–155 Hz; mulher ~165–255 Hz ────────────────────
+def tom(caminho: Path) -> dict[str, float]:
+    """Frequência da voz (mediana e quartis, Hz) por autocorrelação em janelas de 40 ms."""
+    with tempfile.TemporaryDirectory() as d:
+        bruto = Path(d) / "a.raw"
+        _rodar(["-i", str(caminho), "-vn", "-ac", "1", "-ar", "16000", "-f", "s16le", str(bruto)])
+        x = np.frombuffer(bruto.read_bytes(), dtype=np.int16).astype(np.float32)
+    lo, hi = 16000 // 400, 16000 // 60
+    f0 = []
+    for i in range(0, len(x) - 640, 320):
+        w = x[i : i + 640] - x[i : i + 640].mean()
+        if np.sqrt((w**2).mean()) < 500:
+            continue
+        c = np.correlate(w, w, "full")[639:]
+        k = lo + int(np.argmax(c[lo:hi]))
+        if c[k] > 0.4 * c[0]:
+            f0.append(16000 / k)
+    if not f0:
+        return {"mediana": 0.0, "p25": 0.0, "p75": 0.0, "n": 0}
+    a = np.array(f0)
+    return {
+        "mediana": round(float(np.median(a))),
+        "p25": round(float(np.percentile(a, 25))),
+        "p75": round(float(np.percentile(a, 75))),
+        "n": len(a),
+    }
