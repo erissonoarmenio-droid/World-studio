@@ -70,8 +70,11 @@ class ClienteClaude:
             b.get("text", "") for b in corpo.get("content", []) if b.get("type") == "text"
         )
         if corpo.get("stop_reason") == "max_tokens":
+            inicio = texto_resposta[:200].replace("\n", " ")
             raise ErroFornecedor(
-                f"resposta do Claude cortada no limite de {max_tokens} tokens", incerto=False
+                f"resposta do Claude cortada no limite de {max_tokens} tokens "
+                f"({len(texto_resposta)} caracteres; começo: {inicio!r})",
+                incerto=False,
             )
         return extrair_json(texto_resposta)
 
