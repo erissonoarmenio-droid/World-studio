@@ -35,6 +35,7 @@ class Config(BaseSettings):
     anthropic_api_key: SecretStr | None = None  # bot (influencer), diretor, analista de peças
     anthropic_api_key_cerebro: SecretStr | None = None  # só o Cérebro da Central (gasto separado)
     elevenlabs_api_key: SecretStr | None = None  # voz "de gente de verdade" (gravação da lojista)
+    fish_api_key: SecretStr | None = None  # Fish Audio: clone de voz (teste cego 11/11)
 
     # Chave da API interna (/interno/...). Vazio = API interna desligada.
     chave_interna: SecretStr | None = None
@@ -59,6 +60,7 @@ class Config(BaseSettings):
         "anthropic_api_key",
         "anthropic_api_key_cerebro",
         "elevenlabs_api_key",
+        "fish_api_key",
         "chave_interna",
         mode="before",
     )

@@ -327,3 +327,51 @@ def tom(caminho: Path) -> dict[str, float]:
         "p75": round(float(np.percentile(a, 75))),
         "n": len(a),
     }
+
+
+# ── Fish Audio (11/11): concorrente do ElevenLabs no teste cego de voz clonada ────────────
+class FishAudio:
+    """Clone (modelo tts "fast") e fala. Mesma cara do ElevenLabs para trocar fácil."""
+
+    API = "https://api.fish.audio"
+
+    def __init__(self, chave: SecretStr, cliente: httpx.Client | None = None) -> None:
+        self._chave = chave
+        self._http = cliente or httpx.Client(timeout=httpx.Timeout(180.0, connect=15.0))
+
+    def _cab(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self._chave.get_secret_value()}"}
+
+    def _ok(self, r: httpx.Response, oque: str) -> httpx.Response:
+        if r.status_code >= 400:  # mensagem do Fish, nunca a chave
+            raise RuntimeError(f"Fish {oque} → {r.status_code}: {r.text[:300]}")
+        return r
+
+    def clonar(self, nome: str, audio: bytes, tipo: str, genero: str = "") -> str:
+        r = self._http.post(
+            f"{self.API}/model",
+            headers=self._cab(),
+            data={
+                "type": "tts",
+                "title": nome,
+                "train_mode": "fast",
+                "visibility": "private",
+                "enhance_audio_quality": "true",
+            },
+            files={"voices": ("amostra", audio, tipo)},
+        )
+        return str(self._ok(r, "clonar").json()["_id"])
+
+    def falar(self, voz_id: str, texto: str, modelo: str = "s2.1-pro") -> bytes:
+        r = self._http.post(
+            f"{self.API}/v1/tts",
+            headers={**self._cab(), "model": modelo},
+            json={
+                "text": re.sub(r"\[[^\]]*\]\s*", "", texto),
+                "reference_id": voz_id,
+                "format": "mp3",
+                "latency": "normal",
+                "normalize": True,
+            },
+        )
+        return self._ok(r, "falar").content

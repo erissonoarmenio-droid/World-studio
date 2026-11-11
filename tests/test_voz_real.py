@@ -88,3 +88,22 @@ def test_tom_mede_a_altura_da_voz(tmp_path):
     a = tmp_path / "t.wav"
     a.write_bytes(_wav([(1.0, True)]))  # tom de 220 Hz
     assert 200 <= vr.tom(a)["mediana"] <= 240
+
+
+def test_fish_clona_e_fala_com_o_modelo_certo():
+    import httpx
+    from pydantic import SecretStr
+
+    pedidos = []
+
+    def responder(req: httpx.Request) -> httpx.Response:
+        pedidos.append(req)
+        if req.url.path == "/model":
+            return httpx.Response(201, json={"_id": "m1"})
+        return httpx.Response(200, content=b"ID3audio")
+
+    fish = vr.FishAudio(SecretStr("k"), httpx.Client(transport=httpx.MockTransport(responder)))
+    assert fish.clonar("Eri", b"aaa", "audio/mpeg") == "m1"
+    assert fish.falar("m1", "[calm] Olha só.") == b"ID3audio"
+    assert pedidos[1].headers["model"] == "s2.1-pro"
+    assert b"[calm]" not in pedidos[1].content and b"Olha" in pedidos[1].content
