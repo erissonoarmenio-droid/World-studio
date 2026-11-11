@@ -107,22 +107,35 @@ turn away toward the rack with a lopsided smile and a glance back."}]
 
 # Perfil do HOMEM (E45, 10/11 — Eri: "a fala e a gesticulação estão muito femininas").
 HOMEM = """
-O INFLUENCER É UM HOMEM. Escreva como um cara brasileiro fala de verdade com um amigo,
-não como influencer mulher com "he" no lugar de "she":
-- Falas: frases curtas e diretas, menos exclamação, tom calmo e seguro, humor seco. Muletas
-  de homem, sem exagerar gíria: "olha só", "cara", "pô", "tipo", "sério", "né". Evite abrir
-  com "Gente" e evite "amei", "apaixonado", "lindo demais", "fofo", diminutivos ("levinho",
-  "certinho") e "ó" repetido.
-- Masculino na pessoa ("fiquei bem com ela", "tô usando"); o artigo da peça segue a PEÇA:
-  camisa/calça → "separei UMA pra mim"; casaco/short → "separei UM pra mim".
+O INFLUENCER É UM HOMEM. Escreva como um cara brasileiro fala de roupa de verdade — vendedor de
+loja masculina ou amigo indicando —, NÃO como influencer mulher com "he" no lugar de "she".
+(E45/E47, 10–11/11: Eri — "um homem jamais falaria daquele jeito".)
+COMO HOMEM FALA DE ROUPA (referências: creators masculinos de UGC, reels de lojas masculinas):
+- Prático e direto: CAIMENTO (veste bem no ombro, não aperta, não marca a barriga, comprimento
+  certo), OCASIÃO (trampo, rolê, churrasco, fim de semana), USO (não amassa, não esquenta, lava e
+  usa), TAMANHO/PREÇO e chamada seca no fim.
+- Frases curtas, afirmativas, tom calmo e seguro. Humor seco ou leve autozoeira é bem-vindo
+  ("camisa de quem não quer pensar muito e ainda sai arrumado").
+- Fala de homem pra homem, como quem resolve: "Chegou essa aqui.", "Veste bem.", "Dá pra ir
+  pro trampo e sair direto pro bar.", "Tem do P ao GG.", "Chama no direct que eu separo."
+- Muletas permitidas, sem exagero: "olha só", "cara", "pô", "tipo", "sério", "né", "real".
+PROIBIDO no homem (soa feminino): "separei pra mim", "fiquei bem com ela", "me ganhou", "amei",
+"apaixonado", "lindo/linda", "combina com tudo", "look", "fofo", "perfeito", diminutivos
+("levinho", "certinho", "fresquinha"), falar de sentimento sobre a peça, abrir com "Gente".
+- Masculino na pessoa; o artigo da peça segue a PEÇA (camisa → "essa", "uma").
 - Ações em inglês com he/his e gestos de homem: troca o peso de perna, mão no bolso, ajeita a
-  gola, aponta a peça com uma mão, acena de leve com a cabeça, meio sorriso, ri curto pelo
-  nariz no máximo uma vez. NUNCA: balançar o corpo/quadril (sway), inclinar a cabeça (head
-  tilt), cabelo atrás da orelha, jeito fofo/brincalhão (playful), sobrancelha muito ativa.
+  gola, aponta a peça com uma mão, puxa a camisa pela barra para mostrar o caimento, acena de
+  leve com a cabeça, meio sorriso, ri curto pelo nariz no máximo uma vez. NUNCA: balançar o
+  corpo/quadril (sway), inclinar a cabeça (head tilt), cabelo atrás da orelha, jeito fofo
+  (playful), sobrancelha muito ativa.
 - Quem filma é um AMIGO.
-Exemplo de plano de homem: {"acao": "He walks in from the rack holding the shirt by the
-hanger, shifts his weight and lifts it toward the lens:", "fala": "Olha só, chegou hoje.
-Essa aqui eu já separei pra mim."}
+Exemplo de planos de homem:
+{"acao": "He walks in from the rack, shifts his weight and tugs the shirt hem down to show
+the fit:", "fala": "Chegou essa aqui, cara. Veste bem no ombro e não marca a barriga."}
+{"acao": "He points at the embroidered band with one hand, relaxed:", "fala": "Dá pra ir pro
+trampo e sair direto pro bar. Tem do P ao GG."}
+{"acao": "He puts one hand in his pocket and looks at the lens with a half-smile:", "fala":
+"Chama no direct que eu separo a tua."}
 """
 
 

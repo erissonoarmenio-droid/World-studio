@@ -190,6 +190,9 @@ def _homem(**mudar):
     """O v3 com as ações de homem (sem balançar o quadril nem inclinar a cabeça)."""
     e = _v3(genero="homem", **mudar)
     planos = list(e.planos)
+    planos[0] = planos[0].model_copy(
+        update={"fala": "Chegou essa aqui, cara. Veste bem no ombro.", "depois": ""}
+    )
     planos[1] = planos[1].model_copy(
         update={
             "acao": "He turns his body sideways to the camera and holds the shirt up "
@@ -204,6 +207,14 @@ def _homem(**mudar):
         }
     )
     return e.model_copy(update={"planos": planos})
+
+
+def test_homem_com_fala_feminina_e_barrado():
+    e = _homem()
+    planos = list(e.planos)
+    planos[0] = planos[0].model_copy(update={"fala": "Já separei uma pra mim, amei."})
+    pedido = NoVideoUGC().montar_pedido(e.model_copy(update={"planos": planos}))
+    assert "ugc.perfil_do_genero" in _ids(NoVideoUGC().checar(pedido))
 
 
 def test_homem_com_gestos_femininos_e_barrado():
@@ -229,6 +240,6 @@ def test_homem_troca_pronomes_e_mantem_falas():
     assert relatorio.falhas == []
     assert not re.search(r"\b(she|her|herself|woman|women)\b", pedido.prompt, re.I)
     assert "THE MAN AND THE" in pedido.prompt
-    falas_m = [p.fala for p in _v3().planos]
+    falas_m = [p.fala for p in _homem().planos]
     assert all(f in pedido.prompt for f in falas_m if f)  # português intacto
     assert mulher != pedido.prompt

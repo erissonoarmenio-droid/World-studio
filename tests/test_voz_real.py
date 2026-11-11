@@ -77,7 +77,7 @@ def test_voz_guia_poe_cada_fala_no_seu_plano(tmp_path):
 
     el = Falso()
     audio, avisos = vr.montar_voz_guia(el, "v", [(0, 3, "Olha só."), (3, 6, "Chama no direct.")], 6)
-    assert el.textos[0].startswith("[calm]") and avisos == []
+    assert el.textos[0] == "Olha só." and avisos == []
     (tmp_path / "g.mp3").write_bytes(audio)
     assert 5.5 < vr._duracao(tmp_path / "g.mp3") < 6.5
     env = vr._envelope(tmp_path / "g.mp3")

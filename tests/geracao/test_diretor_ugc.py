@@ -117,7 +117,10 @@ def test_fala_que_nao_cabe_em_16s_avisa():
 
 
 def test_homem_avisa_o_cerebro_e_vai_para_as_entradas():
-    cerebro = Falso(BOM)
+    homem = json.loads(
+        json.dumps(BOM).replace("Gente, olha isso, chegou hoje.", "Chegou essa aqui, cara.")
+    )
+    cerebro = Falso(homem)
     d = DiretorUGC(cerebro).dirigir("x", "camisa", "https://x/q.jpg", genero="homem")
     assert "HOMEM" in cerebro.textos[0]
     assert all("THE MAN AND THE" in v.pedido.prompt for v in d.videos)

@@ -156,6 +156,26 @@ VOZ_HOMEM = (
     "steady intonation with few rises at the end of sentences, slightly dry humour; speaks like "
     "a guy talking to a friend, not like a host."
 )
+# Falas que soam femininas na boca de um homem (E47, 11/11 — Eri: "um homem jamais falaria
+# daquele jeito"): bloqueia em vídeo de homem.
+FALAS_FEMININAS_NO_HOMEM = (
+    "separei uma pra mim",
+    "separei um pra mim",
+    "fiquei bem com",
+    "me ganhou",
+    "amei",
+    "apaixonad",
+    "combina com tudo",
+    "lindo",
+    "linda",
+    "fofo",
+    "fofa",
+    "levinh",
+    "certinh",
+    "fresquinh",
+    "gente,",
+    "look",
+)
 # Gestos e jeito que denunciam o perfil feminino num vídeo de homem (bloqueia, E45).
 GESTOS_FEMININOS = (
     "tucks hair",
@@ -352,10 +372,12 @@ def _perfil_do_genero(p: Pedido) -> bool:
         return True
     acoes = " ".join(f"{pl.acao} {pl.depois}" for pl in e.planos).lower()
     feminino = normalizar_texto(ATUACAO)[:60]
+    falas = " ".join(_falas(p)).lower()
     return (
         "VOICE — a Brazilian man" in p.prompt
         and para_genero(feminino, "homem") not in p.prompt
         and not any(g in acoes for g in GESTOS_FEMININOS)
+        and not any(x in falas for x in FALAS_FEMININAS_NO_HOMEM)
     )
 
 
