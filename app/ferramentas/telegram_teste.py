@@ -20,6 +20,7 @@ Rodar no Shell do Render (a chave do bot vem do ambiente; nada é impresso):
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -38,6 +39,34 @@ TIPOS_IMAGEM = ("image/jpeg", "image/png", "image/webp")
 
 Chamar = Callable[[str, dict[str, Any] | None], Any]
 Baixar = Callable[[str], bytes]
+
+
+def texto_do_terminal(valor: str) -> str:
+    """Texto em português vindo do terminal (E51).
+
+    O Shell do Render APAGA letras com acento digitadas (algodão → "algodo",
+    braço → "brao"), e a voz lia o texto estragado. Por isso: aceita o texto em
+    base64 com o prefixo ``b64:`` (só letras simples passam pelo terminal) e
+    recusa texto comprido sem nenhum acento, que é sinal de que o terminal comeu.
+    """
+    if valor.startswith("b64:"):
+        valor = base64.b64decode(valor[4:]).decode("utf-8")
+    if len(valor) > 40 and valor.isascii():
+        raise SystemExit(
+            "texto sem nenhum acento: o terminal pode ter apagado as letras (E51). "
+            'Mande em base64 com o prefixo "b64:".'
+        )
+    return valor
+
+
+def _textos_da_entrada(entrada: dict[str, Any]) -> dict[str, Any]:
+    """Arquivo de entrada: só abre os campos em base64 (podem estar em inglês)."""
+    return {
+        k: base64.b64decode(v[4:]).decode("utf-8")
+        if isinstance(v, str) and v.startswith("b64:")
+        else v
+        for k, v in entrada.items()
+    }
 
 
 def _token() -> str:
@@ -779,7 +808,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(r, ensure_ascii=False))
     elif a.cmd == "foto":
         with open(a.entrada, encoding="utf-8") as f:
-            entrada = json.load(f)
+            entrada = _textos_da_entrada(json.load(f))
         pecas = [int(x) for x in a.peca_fotos.split(",") if x.strip()]
         rostos = [int(x) for x in a.rostos.split(",") if x.strip()]
         r = pedir_foto(
@@ -806,7 +835,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"enviadas: {devolver(a.para, a.midias)}")
     elif a.cmd == "provador":
         with open(a.entrada, encoding="utf-8") as arq:
-            ent = json.load(arq)
+            ent = _textos_da_entrada(json.load(arq))
         ids = lambda txt: [int(x) for x in txt.split(",") if x]  # noqa: E731
         r = provador(
             a.de,
@@ -821,7 +850,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(r, ensure_ascii=False))
     elif a.cmd == "dirigir":
-        r = dirigir(a.de, a.quadro, a.pedido, a.peca, a.genero)
+        r = dirigir(
+            a.de, a.quadro, texto_do_terminal(a.pedido), texto_do_terminal(a.peca), a.genero
+        )
         with open(a.saida, "w", encoding="utf-8") as arq:
             json.dump(r, arq, ensure_ascii=False)
         print("MENSAGEM:", r["mensagem"])

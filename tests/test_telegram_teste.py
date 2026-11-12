@@ -254,3 +254,24 @@ def test_dirigir_mostra_falas_e_video_pede_480_com_o_roteiro(ambiente, ids):  # 
         trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
         assert trabalho.tipo == "video" and trabalho.dados["item"] == "video_480"
         assert trabalho.dados["entradas"][0]["planos"][2]["fala"] == "Me chama no direct, tá?"
+
+
+def test_texto_do_terminal_base64_preserva_acento():
+    """E51: o Shell do Render apaga acentos; base64 passa só letras simples."""
+    import base64
+
+    from app.ferramentas.telegram_teste import texto_do_terminal
+
+    original = "Algodão leve e a manga para no meio do braço"
+    codificado = "b64:" + base64.b64encode(original.encode()).decode()
+    assert texto_do_terminal(codificado) == original
+
+
+def test_texto_do_terminal_recusa_texto_sem_acento():
+    import pytest
+
+    from app.ferramentas.telegram_teste import texto_do_terminal
+
+    with pytest.raises(SystemExit):
+        texto_do_terminal("Algodo leve, veste reto no ombro e a manga para no meio do brao")
+    assert texto_do_terminal("camisa preta") == "camisa preta"  # curto passa
