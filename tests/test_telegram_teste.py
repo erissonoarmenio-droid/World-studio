@@ -253,7 +253,7 @@ def test_dirigir_mostra_falas_e_video_pede_480_com_o_roteiro(ambiente, ids):  # 
     with sessao() as s:
         trabalho = s.scalar(select(Trabalho).where(Trabalho.chave_unica == p["chave"]))
         assert trabalho.tipo == "video" and trabalho.dados["item"] == "video_480"
-        assert trabalho.dados["entradas"][0]["planos"][2]["fala"] == "Me chama no direct, tá?"
+        assert trabalho.dados["entradas"][0]["planos"][2]["fala"] == "Me chama no privado, tá?"
 
 
 def test_texto_do_terminal_base64_preserva_acento():

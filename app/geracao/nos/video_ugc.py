@@ -71,7 +71,33 @@ PROPAGANDA = (
     "promoção imperdível",
 )
 # Palavras que a voz pronuncia errado (E44, 09/11: "chambray" virou "chamelet").
-ESTRANGEIRAS = ("chambray", "oversized", "tricoline", "viscolinho", "cropped", "slim fit")
+ESTRANGEIRAS = (
+    "chambray",
+    "oversized",
+    "tricoline",
+    "viscolinho",
+    "cropped",
+    "slim fit",
+    "direct",  # 13/11 (Eri: '"direct" soa estranho') → dizer "privado"
+)
+# Ação que faz barulho (E56, 13/11): em cima da fala o Seedance põe o barulho tão alto quanto
+# a voz e a edição não separa. Vai antes da fala ou num plano sem fala.
+ACOES_BARULHENTAS = (
+    "sits down",
+    "sit down",
+    "sitting down",
+    "rubbing",
+    "rubs ",
+    "shakes the",
+    "shaking the",
+    "crumple",
+    "drops ",
+    "slaps",
+    "claps",
+    "scrap",
+    "zips",
+    "unzips",
+)
 # Palavra curta logo depois do corte é engolida (E33, 01/11: o "Ó" sumiu 3 de 3 vezes).
 FRACAS_NO_INICIO = ("ó", "o", "é", "e", "ai", "ah", "oh", "né", "tá", "a", "ué", "hm", "hmm")
 MULETAS = ("gente", "olha", "ó", "tipo", "né", "sério", "ai,", "pera", "hmm", "cara", "pô", "mano")
@@ -122,6 +148,12 @@ SO_FALAS = (
     "ONLY she speaks and ONLY the lines above, in Brazilian Portuguese, exactly as {fonte}. "
     "No extra words, ad-libs, voiceover or off-screen speech. Mouth relaxed and closed when "
     "not speaking."
+)
+SOUND_MIX = (
+    "SOUND MIX — her voice is always the loudest and clearest sound, close to the phone. Room "
+    "tone, {som_peca} and any chair or clothing sounds stay quiet in the background, well below "
+    "her voice, never louder than her voice and never harsh or scraping. No microphone handling "
+    "or rubbing noise on the microphone, no distortion. Faint street ambience. No music."
 )
 NEGATIVOS = (
     "STRICT NEGATIVES: no glossy commercial look, no studio key light, no ring-light "
@@ -196,11 +228,16 @@ GESTOS_FEMININOS = (
 )
 
 
-def _perfil(genero: str) -> tuple[str, str]:
-    """(corpo vivo, atuação) do gênero. Mulher = blocos do v3 aprovado."""
-    if genero == "homem":
-        return CORPO_VIVO_HOMEM, ATUACAO_HOMEM
-    return CORPO_VIVO, ATUACAO
+def _perfil(genero: str, peca_nome: str = "shirt") -> tuple[str, str]:
+    """(corpo vivo, atuação) do gênero. Mulher = blocos do v3 aprovado.
+
+    Os blocos foram escritos com "the shirt"; com outra peça (vestido, calça) o nome certo
+    entra no lugar, senão o prompt fala de uma camisa que não existe na cena."""
+    corpo, atuacao = (
+        (CORPO_VIVO_HOMEM, ATUACAO_HOMEM) if genero == "homem" else (CORPO_VIVO, ATUACAO)
+    )
+    peca = f"the {peca_nome.strip().lower()}"
+    return corpo.replace("the shirt", peca), atuacao.replace("the shirt", peca)
 
 
 class Plano(BaseModel):
@@ -288,7 +325,7 @@ def montar_prompt(e: EntradaUGC) -> str:
     if com_voz:
         referencias += "\n" + VOZ_REF
     fonte = "in @audio1" if com_voz else "written"
-    corpo_vivo, atuacao = _perfil(e.genero)
+    corpo_vivo, atuacao = _perfil(e.genero, e.peca_nome)
     acao = (
         f"ACTION, TIMED (spoken lines exactly as {fonte}). {corpo_vivo}\n"
         + "\nHARD CUT.\n".join(_plano(p) for p in e.planos)
@@ -303,8 +340,7 @@ def montar_prompt(e: EntradaUGC) -> str:
         atuacao,
         *([VOZ_HOMEM] if e.genero == "homem" else []),
         SO_FALAS.format(fonte=fonte),
-        f"SFX — realistic phone microphone, quiet store room tone, {e.som_peca}, faint street "
-        "ambience. No music.",
+        SOUND_MIX.format(som_peca=e.som_peca),
         NEGATIVOS.format(peca_nome=e.peca_nome, peca_nunca=e.peca_nunca),
     ]
     prompt = "\n\n".join(
@@ -358,7 +394,7 @@ def _fala_comeca_forte(p: Pedido) -> bool:
 
 
 def _corpo_vivo(p: Pedido) -> bool:
-    bloco = para_genero(normalizar_texto(_perfil(_e(p).genero)[0]), _e(p).genero)
+    bloco = para_genero(normalizar_texto(_perfil(_e(p).genero, _e(p).peca_nome)[0]), _e(p).genero)
     return bloco in p.prompt and all(
         any(v in pl.acao.lower() for v in ACOES_DE_CORPO) for pl in _e(p).planos
     )
@@ -379,6 +415,22 @@ def _perfil_do_genero(p: Pedido) -> bool:
         and not any(g in acoes for g in GESTOS_FEMININOS)
         and not any(x in falas for x in FALAS_FEMININAS_NO_HOMEM)
     )
+
+
+def _mix_ok(p: Pedido) -> bool:
+    return "SOUND MIX" in p.prompt and (
+        "never louder than her voice" in p.prompt or "never louder than his voice" in p.prompt
+    )
+
+
+def _sem_barulho_na_fala(p: Pedido) -> bool:
+    return not any(
+        b in pl.acao.lower() for pl in _e(p).planos if pl.fala for b in ACOES_BARULHENTAS
+    )
+
+
+def _sem_reticencias(p: Pedido) -> bool:
+    return not any("..." in f or "…" in f for f in _falas(p))
 
 
 REGRAS = registrar(
@@ -486,6 +538,29 @@ REGRAS = registrar(
             faca="Falas sem palavra estrangeira/técnica que a voz erra: " + ", ".join(ESTRANGEIRAS),
             origem='E44 — 09/11 (Seedance falou "chamelet" no lugar de "chambray")',
             checar=lambda p: not any(x in f.lower() for f in _falas(p) for x in ESTRANGEIRAS),
+        ),
+        Regra(
+            id="ugc.mix_voz_por_cima",
+            nivel="bloqueia",
+            faca="Bloco SOUND MIX: a voz é sempre o som mais alto; sons da peça e do lugar ficam "
+            "baixos, nunca acima da voz.",
+            origem="E56 — 13/11 (barulho de sentar e de tecido saiu até 4 dB acima da voz)",
+            checar=_mix_ok,
+        ),
+        Regra(
+            id="ugc.acao_barulhenta_fora_da_fala",
+            nivel="aviso",
+            faca="Ação que faz barulho (sentar, esfregar o tecido, sacudir a peça) vai antes da "
+            "fala ou num plano sem fala; falando, ela segura ou aponta a peça.",
+            origem="E55/E56 — 13/11 (o 'raspado' era a ação em cima da fala)",
+            checar=_sem_barulho_na_fala,
+        ),
+        Regra(
+            id="ugc.sem_reticencias",
+            nivel="aviso",
+            faca="Falas emendadas com vírgula, sem reticências (a pausa sai robótica).",
+            origem="E3 + estudo de som parte 8 — 13/11 (texto natural reduziu as pausas)",
+            checar=_sem_reticencias,
         ),
         Regra(
             id="ugc.sem_propaganda",

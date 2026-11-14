@@ -372,6 +372,27 @@ def _julgar_rosto(reais: list[Imagem], conteudo: bytes, tipo: str) -> dict[str, 
         return {"julgado": False, "erro": f"{type(erro).__name__}: {str(erro)[:150]}"}
 
 
+def _subir_uma_vez(trabalho_id: int, nome: str, subir: Callable[[], str]) -> str:
+    """Sobe o arquivo ao fornecedor só na 1ª tentativa e guarda o link no trabalho.
+
+    Cada upload devolve um link novo. Se a nova tentativa (tempo esgotado, servidor reiniciado)
+    subisse de novo, o pedido mudaria, nem o registro de envio nem a chave de idempotência da
+    Tein o reconheceriam, e sairia um 2º vídeo pago (auditoria de 14/11)."""
+    with abrir_sessao() as s:
+        t = s.get(Trabalho, trabalho_id)
+        guardado = ((t.dados or {}).get("uploads") or {}).get(nome) if t else None
+    if guardado:
+        return str(guardado)
+    url = subir()
+    with abrir_sessao() as s:
+        t = s.get(Trabalho, trabalho_id, with_for_update=True)
+        if t is not None:
+            dados = dict(t.dados or {})
+            dados["uploads"] = {**(dados.get("uploads") or {}), nome: url}
+            t.dados = dados
+    return url
+
+
 ESPERA_MAXIMA_VIDEO = 45 * 60  # 720p na fila da Tein: 20–40 min (01/11)
 
 
@@ -380,7 +401,8 @@ def executar_video(trabalho: Trabalho) -> Resultado:
     "primeiro_quadro_midia_id": foto aprovada da influencer com a peça}.
 
     O roteiro (planos e falas) já chega pronto do diretor; aqui só gera, baixa e guarda.
-    Reenvio por queda do servidor não cobra 2×: a Tein usa a `idempotency_key` do payload.
+    Reenvio por queda do servidor não cobra 2×: o link do 1º quadro e o id do envio ficam
+    guardados no trabalho; a nova tentativa só consulta o mesmo vídeo.
     """
     from app.geracao.nos.video_ugc import EntradaUGC, NoVideoUGC
 
@@ -396,13 +418,21 @@ def executar_video(trabalho: Trabalho) -> Resultado:
         m = midia.obter_midia(s, d["primeiro_quadro_midia_id"], trabalho.loja_id)
         tipo_quadro = m.content_type
         quadro = midia.ler(s, m.id, trabalho.loja_id)
-    url_quadro = fornecedor.subir_midia(quadro, "quadro1.png", tipo_quadro)  # type: ignore[attr-defined]
+    url_quadro = _subir_uma_vez(
+        trabalho.id,
+        "quadro",
+        lambda: fornecedor.subir_midia(quadro, "quadro1.png", tipo_quadro),  # type: ignore[attr-defined]
+    )
     url_guia = None
     if d.get("voz_guia_midia_id"):  # 11/11: voz-guia → o Seedance copia ritmo e entonação
         with abrir_sessao() as s:
             g = midia.obter_midia(s, d["voz_guia_midia_id"], trabalho.loja_id)
             guia, tipo_guia = midia.ler(s, g.id, trabalho.loja_id), g.content_type
-        url_guia = fornecedor.subir_midia(guia, "voz_guia.mp3", tipo_guia)  # type: ignore[attr-defined]
+        url_guia = _subir_uma_vez(
+            trabalho.id,
+            "guia",
+            lambda: fornecedor.subir_midia(guia, "voz_guia.mp3", tipo_guia),  # type: ignore[attr-defined]
+        )
 
     no = NoVideoUGC()
     pedidos_prontos = []

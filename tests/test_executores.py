@@ -400,3 +400,44 @@ def test_lote_aceito_e_tentativa_caida_nao_paga_duas_vezes(ambiente, monkeypatch
         s.expunge(trabalho)
     resultado = executores.executar_tipo_foto(trabalho)
     assert ambiente.envios == 1 and len(resultado.dados["midias"]) == 1
+
+
+def test_video_tentativa_caida_nao_sobe_o_quadro_de_novo_nem_paga_duas_vezes(tein, monkeypatch):
+    """Auditoria 14/11: cada upload na Tein devolve um link NOVO. Se a nova tentativa subisse
+    o 1º quadro outra vez, o pedido mudava (link diferente), o registro de envio não o
+    reconhecia e saía um 2º vídeo pago. O link fica guardado no trabalho e é reaproveitado."""
+    links = iter(f"https://tein.exemplo/quadro-{n}.png" for n in range(1, 9))
+
+    def subir(conteudo, nome_arquivo, tipo):
+        tein.uploads += 1
+        return next(links)
+
+    enviados = []
+
+    def enviar(pedido):
+        enviados.append(pedido.payload["reference_image"])
+        return Resposta(estado="na_fila", id=f"job-{len(enviados)}")
+
+    quedas = {"n": 1}
+    original = tein.consultar
+
+    def consultar(id_trabalho):
+        if quedas["n"]:
+            quedas["n"] -= 1
+            raise TimeoutError("o servidor reiniciou no meio da espera")
+        return original(id_trabalho)
+
+    monkeypatch.setattr(tein, "subir_midia", subir)
+    monkeypatch.setattr(tein, "enviar", enviar)
+    monkeypatch.setattr(tein, "consultar", consultar)
+    _, trabalho = preparar_video("Exec Video Queda")
+    with pytest.raises(TimeoutError):
+        executores.executar_video(trabalho)
+    assert len(enviados) == 1
+
+    with sessao() as s:  # o trabalhador relê o trabalho na nova tentativa
+        trabalho = s.get(Trabalho, trabalho.id)
+        s.expunge(trabalho)
+    resultado = executores.executar_video(trabalho)
+    assert len(enviados) == 1, "a nova tentativa pagou um 2º vídeo"
+    assert tein.uploads == 1 and len(resultado.dados["midias"]) == 1

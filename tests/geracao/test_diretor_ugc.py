@@ -25,7 +25,7 @@ def _video(angulo: str) -> dict:
             {"inicio": 5, "fim": 10, "enquadramento": "Slightly closer", "acao": "She turns "
              "sideways and holds the shirt against her torso:", "fala": "Linho, ó, tipo."},
             {"inicio": 10, "fim": 16, "enquadramento": "Chest-up", "acao": "She leans toward "
-             "the lens and says:", "fala": "Me chama no direct, tá?"},
+             "the lens and says:", "fala": "Me chama no privado, tá?"},
         ],
     }  # fmt: skip
 

@@ -45,20 +45,25 @@ REGRAS (o sistema bloqueia se quebrar):
 3. Enquadramento dos planos 2+ em inglês e curto: "Slightly closer", "Slightly wider",
    "Chest-up", "Waist-up". NUNCA "extreme close-up". O 1º plano sem enquadramento.
 4. "acao" em inglês, terminando no gancho da fala (ex.: "... and says:" ou "... at it:").
-   "fala" em português do Brasil falado, SEM aspas: frases curtas e quebradas, pelo menos
+   "fala" em português do Brasil falado, SEM aspas: do jeito que gente fala, frases emendadas
+   com vírgula, SEM reticências (a pausa sai robótica), pelo menos
    uma muleta (gente, olha, ó, tipo, né, sério), nada de propaganda (proibido: imperdível,
    corre que acaba, você precisa, obcecada, game changer, melhor do mundo).
    "depois" (opcional) em inglês: reação depois da fala; pode citar entre aspas UMA palavra
    que está na fala (ex.: Small shrug on "sério").
    Do 2º plano em diante, a fala NUNCA começa com palavra curta (ó, é, e, ai, ah, né, tá):
    o vídeo corta ali e a 1ª sílaba some. Comece com palavra cheia e ponha a muleta no meio
-   ("Isso aqui é linho, ó, tipo..." e não "Ó, isso aqui é linho").
+   ("Isso aqui é linho, ó, bem leve" e não "Ó, isso aqui é linho").
 5. Total de palavras faladas até (duração − 2) × 2,5. Deixe respiros.
 6. Quem filma é uma AMIGA com o celular na mão (a câmera é fixa no sistema): no "contexto"
    NUNCA diga que ela segura o celular ou filma a si mesma.
 7. Use os móveis que existem no local (se a foto mostra poltrona, é "armchair", não "sofa").
+7a. SOM (E56): ação que faz barulho (sentar, esfregar ou sacudir o tecido, largar o cabide)
+   vai ANTES da fala do plano, terminada, ou num plano sem fala. Enquanto fala, ela só segura,
+   levanta ou aponta a peça. Nunca "rubbing", "sits down" ou "shakes" num plano com fala.
 7b. Nas falas, NADA de palavra estrangeira ou técnica de tecido/moda (chambray, oversized,
-   tricoline, viscolinho…): a voz erra a pronúncia (E44, 09/11: "chambray" virou
+   tricoline, viscolinho, direct…; para chamar no Instagram diga "privado"): a voz erra a
+   pronúncia (E44, 09/11: "chambray" virou
    "chamelet"). Diga como o cliente fala: "tecido leve", "algodão", "fresquinha", "solta".
 8. Descreva a peça em inglês com cor, tecido e detalhes que não podem mudar (gola, botões,
    bolsos, mangas). "peca_nunca" lista o que nunca muda (ex.: "colour, collar, buttons or
@@ -88,19 +93,19 @@ EXEMPLO de planos aprovados pelo dono (vídeo real que ficou ótimo):
 [{"inicio":0,"fim":5,"enquadramento":"","acao":"Starts mid-movement: she walks two steps
 toward the camera from the clothing rack, holding the shirt on its wooden hanger, already
 turning to the lens. She takes a small breath, laughs softly through her nose and says:",
-"fala":"Gente, olha isso... chegou hoje e eu já separei uma pra mim.","depois":"Eyebrows
+"fala":"Gente, olha isso, chegou hoje e eu já separei uma pra mim.","depois":"Eyebrows
 lift on \\"separei\\"; her free hand points at herself on \\"pra mim\\"."},
 {"inicio":5,"fim":8.4,"enquadramento":"Slightly closer","acao":"She turns her body sideways
 to the camera and holds the shirt up against her torso, swaying her hips a little as she
-looks down at it:","fala":"Isso aqui é linho, ó, tipo...","depois":""},
+looks down at it:","fala":"Isso aqui é linho, ó, bem leve,","depois":""},
 {"inicio":8.4,"fim":11.7,"enquadramento":"Slightly wider","acao":"She steps half a step
-forward and pushes the shirt toward the lens, rubbing the fabric between two fingers, then
-lifts the pointed collar and lets it fall:","fala":"...sente a textura. E não esquenta nada,
-sério.","depois":"Small shrug with both shoulders on \\"sério\\", weight shifting to the
+forward and holds the shirt toward the lens, then lifts the pointed collar with two fingers
+and lets it fall:","fala":"Sente a textura, e não esquenta nada, sério.","depois":"Small shrug
+with both shoulders on \\"sério\\", weight shifting to the
 other leg."},
 {"inicio":11.7,"fim":16,"enquadramento":"Chest-up","acao":"She tosses the hanger over her
 shoulder, leans slightly toward the lens with her head tilted and says, relaxed:","fala":"Quer
-ver ela vestida? Me chama no direct.","depois":"A short light chuckle, then she starts to
+ver ela vestida? Me chama no privado.","depois":"A short light chuckle, then she starts to
 turn away toward the rack with a lopsided smile and a glance back."}]
 """
 
@@ -117,7 +122,7 @@ COMO HOMEM FALA DE ROUPA (referências: creators masculinos de UGC, reels de loj
 - Frases curtas, afirmativas, tom calmo e seguro. Humor seco ou leve autozoeira é bem-vindo
   ("camisa de quem não quer pensar muito e ainda sai arrumado").
 - Fala de homem pra homem, como quem resolve: "Chegou essa aqui.", "Veste bem.", "Dá pra ir
-  pro trampo e sair direto pro bar.", "Tem do P ao GG.", "Chama no direct que eu separo."
+  pro trampo e sair direto pro bar.", "Tem do P ao GG.", "Chama no privado que eu separo."
 - Muletas permitidas, sem exagero: "olha só", "cara", "pô", "tipo", "sério", "né", "real".
 PROIBIDO no homem (soa feminino): "separei pra mim", "fiquei bem com ela", "me ganhou", "amei",
 "apaixonado", "lindo/linda", "combina com tudo", "look", "fofo", "perfeito", diminutivos
@@ -135,7 +140,7 @@ the fit:", "fala": "Chegou essa aqui, cara. Veste bem no ombro e não marca a ba
 {"acao": "He points at the embroidered band with one hand, relaxed:", "fala": "Dá pra ir pro
 trampo e sair direto pro bar. Tem do P ao GG."}
 {"acao": "He puts one hand in his pocket and looks at the lens with a half-smile:", "fala":
-"Chama no direct que eu separo a tua."}
+"Chama no privado que eu separo a tua."}
 """
 
 

@@ -22,6 +22,6 @@ ACTING: natural, warm, lightly amused, like talking to a friend. She breathes be
 
 ONLY she speaks and ONLY the lines above, in Brazilian Portuguese, exactly as in @audio1. No extra words, ad-libs, voiceover or off-screen speech. Mouth relaxed and closed when not speaking.
 
-SFX — realistic phone microphone, quiet store room tone, soft fabric rustle, wooden hanger click, faint street ambience. No music.
+SOUND MIX — her voice is always the loudest and clearest sound, close to the phone. Room tone, soft fabric rustle, wooden hanger click and any chair or clothing sounds stay quiet in the background, well below her voice, never louder than her voice and never harsh or scraping. No microphone handling or rubbing noise on the microphone, no distortion. Faint street ambience. No music.
 
 STRICT NEGATIVES: no glossy commercial look, no studio key light, no ring-light catchlights, no skin smoothing. The shirt never changes colour, collar, buttons or fabric; no pocket appears. Exactly two arms, five fingers per hand, no fused fingers. No overacting, no giant smile, no repetitive nods. Never frozen or standing still like a mannequin. No frozen avatar pauses, no fixed stare. No identity or body drift between cuts. No morphing between cuts. No gimbal, dolly or artificial shallow focus. No text, subtitles, logos or UI.
